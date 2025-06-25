@@ -3,6 +3,13 @@ description: "Schema for user-provided configuration files."
 type: object
 additionalProperties: false
 properties:
-  dummy_text:
-    description: A template example. Should be deleted in real applications.
-    type: string
+  techs:
+    type: object
+    additionalProperties:
+      type: object
+      additionalProperties: false
+      properties:
+        max_slope:
+          type: number
+      required: [max_slope]
+required: [techs]
