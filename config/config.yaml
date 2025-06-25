@@ -1,2 +1,5 @@
-# A minimal example of how to configure this module
-dummy_text: This is a user input.
+techs:
+  pv-open-field:
+    max_slope: 3
+  wind-onshore:
+    max_slope: 20

@@ -7,5 +7,7 @@ title: "clio - module_area_potentials: Area potentials"
 repository: "https://github.com/calliope-project/module_area_potentials"
 license: Apache-2.0
 authors:
+  - given-names: Linh
+    family-names: Ho-Tran
   - given-names: Stefan
     family-names: Pfenninger-Lee

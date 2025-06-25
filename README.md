@@ -39,3 +39,15 @@ pixi shell    # activate this project's environment
 cd tests/integration/  # navigate to the integration example
 snakemake --use-conda  # run the workflow!
 ```
+
+## Data sources and licenses
+
+* [GlobCover land cover data](https://due.esrin.esa.int/page_globcover.php)
+    * License: "You may use the GlobCover land cover map for educational and/or scientific purposes, without any fee on the condition that you credit ESA and the Université Catholique de Louvain as the source of the GlobCover products."
+* [GEBCO (General Bathymetric Chart of the Oceans)](https://www.gebco.net/data-products/gridded-bathymetry-data) 15 arc-second data
+    * License: "The GEBCO Grid is placed in the public domain and may be used free of charge. [...] Users must: Acknowledge the source of The GEBCO Grid. A suitable form of attribution is given in the documentation that accompanies The GEBCO Grid."
+* [GHSL (Global Human Settlement Layer)](https://human-settlement.emergency.copernicus.eu/download.php) built-up surface data (R2023, GHS-BUILT-S, 100m resolution)
+    * License: "The GHSL has been produced by the EC JRC as open and free data. Reuse is authorised, provided the source is acknowledged."
+* [WDPA (World Database on Protected Areas)](https://www.protectedplanet.net/)
+    * License: Non-commercial allowed. Citation: "UNEP-WCMC and IUCN (2025), Protected Planet: The World Database on Protected Areas (WDPA) and World Database on Other Effective Area-based Conservation Measures (WD-OECM) [Online], June 2025, Cambridge, UK: UNEP-WCMC and IUCN. Available at: www.protectedplanet.net."
+* Slope is derived from the GMTED2010 public-domain dataset and stored as unsigned 8-bit integers to save space, so we only have integer slope values.
