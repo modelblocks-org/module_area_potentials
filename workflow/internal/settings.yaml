@@ -5,8 +5,7 @@ resources:
     # Links for automatically downloaded files
     ##
     # Slope
-    slope_gmted2010_opendap: "https://opendap.4tu.nl/thredds/dodsC/data2/test/slope-global_20101117_gmted_mea075.nc"
-    slope_gmted2010: "https://surfdrive.surf.nl/files/index.php/s/S4dFpFW9aJDPcVr/download"
+    slope: "https://s3.opengeohub.org/global/dtm/v3/slope.in.degree_edtm_m_60m_s_20000101_20221231_go_epsg.4326_v20241230.tif"
     # Land cover
     globcover: "https://due.esrin.esa.int/files/Globcover2009_V2.3_Global_.zip"
     globcover_landcover_tif: "GLOBCOVER_L4_200901_200912_V2.3.tif"

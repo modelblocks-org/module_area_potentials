@@ -1,16 +1,16 @@
 """Rules to used to download automatic resource files."""
 
-rule download_slope_gmted2010:
+rule download_cutout_slope:
     message:
-        "Download slope derived from GMTED2010 data (~1 GB)."
+        "Download slope data covering the bounds of the input shapefile."
     params:
-        url=internal["resources"]["automatic"]["slope_gmted2010"],
+        tiff_url=internal["resources"]["automatic"]["slope"],
+    input:
+        vector="resources/user/shapes.parquet",
     output:
-        "resources/automatic/slope.nc",
-    conda:
-        "../envs/shell.yaml"
-    shell:
-        'curl -sSLo {output} "{params.url}"'
+        path="resources/automatic/slope_cutout.tif",
+    wrapper:
+        "https://github.com/irm-codebase/snakemake-wrappers/raw/rasterio-tiff-clipping/geo/rasterio/clip-cog"
 
 rule download_wdpa:
     message:

@@ -9,7 +9,7 @@ rule slope_too_steep:
     params:
         max_slope=lambda wildcards: config["techs"][f"{wildcards.tech}"]["max_slope"]
     input:
-        shapes=rules.cutout_slope.output,
+        shapes=rules.download_cutout_slope.output,
     output:
         "resources/slope_too_steep_{tech}.nc",
     conda:

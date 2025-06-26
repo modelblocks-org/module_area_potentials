@@ -42,6 +42,8 @@ snakemake --use-conda  # run the workflow!
 
 ## Data sources and licenses
 
+* [GEDTM30](https://github.com/openlandmap/GEDTM30) for slope
+    * License: Creative Commons Attribution 4.0 International
 * [GlobCover land cover data](https://due.esrin.esa.int/page_globcover.php)
     * License: "You may use the GlobCover land cover map for educational and/or scientific purposes, without any fee on the condition that you credit ESA and the Université Catholique de Louvain as the source of the GlobCover products."
 * [GEBCO (General Bathymetric Chart of the Oceans)](https://www.gebco.net/data-products/gridded-bathymetry-data) 15 arc-second data
