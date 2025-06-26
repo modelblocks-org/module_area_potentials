@@ -9,7 +9,7 @@ rule cutout_landcover:
         shapes="resources/user/shapes.parquet",
         landcover=rules.unzip_globcover.output.landcover,
     output:
-        "resources/cutout_landcover.tif",
+        "resources/cutout/landcover.tif",
     conda:
         "../envs/default.yaml"
     shell:
@@ -24,28 +24,12 @@ rule cutout_landseamask:
         shapes="resources/user/shapes.parquet",
         landseamask=rules.unzip_globcover.output.landseamask,
     output:
-        "resources/cutout_landseamask.tif",
+        "resources/cutout/landseamask.tif",
     conda:
         "../envs/default.yaml"
     shell:
         """
         rio clip --overwrite "{input.landseamask}" "{output}" --bounds "$(fio info '{input.shapes}' --bounds)"
-        """
-
-
-rule cutout_bathymetry:
-    message:
-        "Cut bathymetry data to the bounds of the input shapefile."
-    input:
-        shapes="resources/user/shapes.parquet",
-        bathymetry=rules.merge_gebco.output,
-    output:
-        "resources/cutout_bathymetry.tif",
-    conda:
-        "../envs/default.yaml"
-    shell:
-        """
-        rio clip --overwrite "{input.bathymetry}" "{output}" --bounds "$(fio info '{input.shapes}' --bounds)"
         """
 
 rule cutout_settlement:
@@ -55,7 +39,7 @@ rule cutout_settlement:
         shapes="resources/user/shapes.parquet",
         settlement=rules.unzip_ghsl.output,
     output:
-        "resources/cutout_settlement.tif",
+        "resources/cutout/settlement.tif",
     conda:
         "../envs/default.yaml"
     shell:

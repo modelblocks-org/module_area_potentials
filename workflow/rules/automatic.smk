@@ -4,13 +4,25 @@ rule download_cutout_slope:
     message:
         "Download slope data covering the bounds of the input shapefile."
     params:
-        tiff_url=internal["resources"]["automatic"]["slope"],
+        cog_url=internal["resources"]["automatic"]["slope"],
     input:
         vector="resources/user/shapes.parquet",
     output:
-        path="resources/automatic/slope_cutout.tif",
+        path="resources/cutout/slope.tif",
     wrapper:
-        "https://github.com/irm-codebase/snakemake-wrappers/raw/rasterio-tiff-clipping/geo/rasterio/clip-cog"
+        "https://github.com/irm-codebase/snakemake-wrappers/raw/rasterio-tiff-clipping/geo/rasterio/clip-geotiff"
+
+rule download_cutout_bathymetry:
+    message:
+        "Download bathymetry data covering the bounds of the input shapefile."
+    params:
+        cog_url=internal["resources"]["automatic"]["bathymetry"],
+    input:
+        vector="resources/user/shapes.parquet",
+    output:
+        path="resources/cutout/bathymetry.tif",
+    wrapper:
+        "https://github.com/irm-codebase/snakemake-wrappers/raw/rasterio-tiff-clipping/geo/rasterio/clip-geotiff"
 
 rule download_wdpa:
     message:
@@ -109,44 +121,4 @@ rule unzip_ghsl:
         unzip -j {input} {params.target_file} -d $temp_dir
         mv $temp_dir/{params.target_file} {output}
         rm -R $temp_dir
-        """
-
-rule download_gebco:
-    message:
-        "Download the GEBCO (General Bathymetric Chart of the Oceans) 15 arc-second data (4 GB zipped, 8 GB unzipped)."
-    params:
-        url=internal["resources"]["automatic"]["gebco"],
-    output:
-        "resources/automatic/gebco_2024_sub_ice_topo_geotiff.zip",
-    conda:
-        "../envs/shell.yaml"
-    shell:
-        'curl -sSLo {output} "{params.url}"'
-
-rule unzip_gebco:
-    message:
-        "Unzip all (TIF) files from the GEBCO data."
-    input:
-        rules.download_gebco.output,
-    output:
-        directory("resources/automatic/gebco"),
-    conda:
-        "../envs/shell.yaml"
-    shell:
-        """
-        unzip -j {input} -d {output}
-        """
-
-rule merge_gebco:
-    message:
-        "Merge all GEBCO TIF files into a single TIF file."
-    input:
-        rules.unzip_gebco.output
-    output:
-        "resources/automatic/gebco.tif",
-    conda:
-        "../envs/shell.yaml"
-    shell:
-        """
-        rio merge {input}/gebco_2024_sub_ice_*.tif {output} --overwrite
         """

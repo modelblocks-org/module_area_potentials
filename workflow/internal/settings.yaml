@@ -6,13 +6,12 @@ resources:
     ##
     # Slope
     slope: "https://s3.opengeohub.org/global/dtm/v3/slope.in.degree_edtm_m_60m_s_20000101_20221231_go_epsg.4326_v20241230.tif"
+    # Bathymetry
+    bathymetry: "https://zenodo.org/records/15741950/files/gebco_2024_sub_ice_cog.tif"
     # Land cover
     globcover: "https://due.esrin.esa.int/files/Globcover2009_V2.3_Global_.zip"
     globcover_landcover_tif: "GLOBCOVER_L4_200901_200912_V2.3.tif"
     globcover_landseamask_tif: "GLOBCOVER_L4_200901_200912_V2.3_CLA_QL.tif"
-    # Bathymetry
-    gebco: "https://www.bodc.ac.uk/data/open_download/gebco/gebco_2024_sub_ice_topo/geotiff/"
-    gebco_tif: "gebco_2024_sub_ice_topo.tif"
     # Built-up areas
     ghsl: "https://jeodpp.jrc.ec.europa.eu/ftp/jrc-opendata/GHSL/GHS_BUILT_S_GLOBE_R2023A/GHS_BUILT_S_E2025_GLOBE_R2023A_54009_100/V1-0/GHS_BUILT_S_E2025_GLOBE_R2023A_54009_100_V1_0.zip"
     ghsl_tif: "GHS_BUILT_S_E2025_GLOBE_R2023A_54009_100_V1_0.tif"
