@@ -32,20 +32,6 @@ rule cutout_landseamask:
         rio clip --overwrite "{input.landseamask}" "{output}" --bounds "$(fio info '{input.shapes}' --bounds)"
         """
 
-rule cutout_slope:
-    message:
-        "Cut slope data to the bounds of the input shapefile."
-    input:
-        shapes="resources/user/shapes.parquet",
-        slope=rules.download_slope_gmted2010.output,
-    output:
-        "resources/cutout_slope.nc",
-    conda:
-        "../envs/default.yaml"
-    shell:
-        """
-        python {BASE_DIR}/scripts/subset_netcdf.py "{input.shapes}" "{input.slope}" "{output}"
-        """
 
 rule cutout_bathymetry:
     message:
