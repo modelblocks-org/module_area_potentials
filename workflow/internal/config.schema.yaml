@@ -35,16 +35,8 @@ properties:
           additionalProperties: false
       required: [max_slope, land_cover, settlement]
       additionalProperties: false
-required: [techs_onshore]
 
-# properties:
-#   techs:
-#     type: object
-#     additionalProperties:
-#       type: object
-#       additionalProperties: false
-#       properties:
-#         max_slope:
-#           type: number
-#       required: [max_slope]
-# required: [techs]
+  techs_offshore:
+      type: object
+
+required: [techs_onshore]

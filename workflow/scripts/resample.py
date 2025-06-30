@@ -1,12 +1,88 @@
-import click
 import math
+
+import click
 import geopandas as gpd
+import numpy as np
 import rioxarray as rxr
 import xarray as xr
-import numpy as np
-from rasterio.transform import from_bounds
-from rasterio.enums import Resampling
 import yaml
+from rasterio.enums import Resampling
+from rasterio.transform import from_bounds
+
+# LAND COVER
+# Original classification categories taken from GlobCover 2009 land cover.
+# From Troendle et al. (2019) https://github.com/timtroendle/possibility-for-electricity-autarky
+# suitable land cover types are defined in config.yaml, as 1, other types are 0
+
+
+GlobCover = {
+    11: "POST_FLOODING",
+    14: "RAINFED_CROPLANDS",
+    20: "MOSAIC_CROPLAND",
+    30: "MOSAIC_VEGETATION",
+    40: "CLOSED_TO_OPEN_BROADLEAVED_FOREST",
+    50: "CLOSED_BROADLEAVED_FOREST",
+    60: "OPEN_BROADLEAVED_FOREST",
+    70: "CLOSED_NEEDLELEAVED_FOREST",
+    90: "OPEN_NEEDLELEAVED_FOREST",
+    100: "CLOSED_TO_OPEN_MIXED_FOREST",
+    110: "MOSAIC_FOREST",
+    120: "MOSAIC_GRASSLAND",
+    130: "CLOSED_TO_OPEN_SHRUBLAND",
+    140: "CLOSED_TO_OPEN_HERBS",
+    150: "SPARSE_VEGETATION",
+    160: "CLOSED_TO_OPEN_REGULARLY_FLOODED_FOREST",  # doesn't exist in Europe
+    170: "CLOSED_REGULARLY_FLOODED_FOREST",  # doesn't exist in Europe
+    180: "CLOSED_TO_OPEN_REGULARLY_FLOODED_GRASSLAND",  # roughly 2.3% of land in Europe
+    190: "ARTIFICAL_SURFACES_AND_URBAN_AREAS",
+    200: "BARE_AREAS",
+    210: "WATER_BODIES",
+    220: "PERMANENT_SNOW",
+    230: "NO_DATA",
+}
+
+CoverType = {
+    "POST_FLOODING": "FARM",
+    "RAINFED_CROPLANDS": "FARM",
+    "MOSAIC_CROPLAND": "FARM",
+    "MOSAIC_VEGETATION": "FARM",
+    "CLOSED_TO_OPEN_BROADLEAVED_FOREST": "FOREST",
+    "CLOSED_BROADLEAVED_FOREST": "FOREST",
+    "OPEN_BROADLEAVED_FOREST": "FOREST",
+    "CLOSED_NEEDLELEAVED_FOREST": "FOREST",
+    "OPEN_NEEDLELEAVED_FOREST": "FOREST",
+    "CLOSED_TO_OPEN_MIXED_FOREST": "FOREST",
+    "MOSAIC_FOREST": "FOREST",
+    "CLOSED_TO_OPEN_REGULARLY_FLOODED_FOREST": "FOREST",
+    "CLOSED_REGULARLY_FLOODED_FOREST": "FOREST",
+    "MOSAIC_GRASSLAND": "OTHER",  # vegetation
+    "CLOSED_TO_OPEN_SHRUBLAND": "OTHER",  # vegetation
+    "CLOSED_TO_OPEN_HERBS": "OTHER",  # vegetation
+    "SPARSE_VEGETATION": "OTHER",  # vegetation
+    "CLOSED_TO_OPEN_REGULARLY_FLOODED_GRASSLAND": "OTHER",  # vegetation
+    "BARE_AREAS": "OTHER",
+    "ARTIFICAL_SURFACES_AND_URBAN_AREAS": "URBAN",
+    "WATER_BODIES": "WATER",
+    "PERMANENT_SNOW": "NA",
+    "NO_DATA": "NA",
+}
+
+
+def get_suitable_land_cover_type(ds_land_cover, suitable_land_cover_types):
+    suitable_land_cover = xr.Dataset(coords=ds_land_cover.coords)
+
+    # convert the input value to land cover type of interest
+    for value in np.unique(ds_land_cover.data):
+        if value in GlobCover:
+            ds_land_cover = ds_land_cover.where(
+                ds_land_cover != value, other=CoverType[GlobCover[value]], drop=False
+            )
+
+    # check if each pixel is in the list of suitable land cover types
+    for type in suitable_land_cover_types:
+        suitable_land_cover[type] = (ds_land_cover == type).astype(float)
+
+    return suitable_land_cover
 
 
 def create_empty_geospatial_array(
@@ -14,8 +90,7 @@ def create_empty_geospatial_array(
     resolution,
     projection,
 ):
-    """
-    Create an empty geospatial array with specified resolution, projection, and bounds.
+    """Create an empty geospatial array with specified resolution, projection, and bounds.
 
     Args:
         bounds (tuple): Bounds of the array (minx, miny, maxx, maxy).
@@ -91,7 +166,9 @@ def _area_of_pixel(pixel_size, center_lat):
 
 
 def determine_pixel_areas(raster_input, bounds, resolution):
-    """Returns a raster in which the value corresponds to the area in [m2] of the pixel.
+    """Determine area of each pixel.
+
+    Returns a raster in which the value corresponds to the area in [m2] of the pixel.
     based on T.Troendle determine_pixel_areas (utils.py and technically_eligible_area.py)
     This assumes the data comprises square pixel in WGS84.
 
@@ -132,7 +209,7 @@ def determine_pixel_areas(raster_input, bounds, resolution):
 @click.argument("slope_path", type=str)
 @click.argument("land_cover_path", type=str)
 @click.argument("settlement_path", type=str)
-@click.argument("output_path_pixel_area", type=str)
+@click.argument("max_slope", type=float)
 @click.argument("output_path", type=str)
 def get_same_shape_and_resolution(
     shapes_path,
@@ -142,13 +219,14 @@ def get_same_shape_and_resolution(
     slope_path,
     land_cover_path,
     settlement_path,
-    output_path_pixel_area,
+    max_slope,
     output_path,
 ):
-    """
-    Resample and crop the raster_input
-    to have the same bounds, projection, and resolution as the reference_raster
-    reproject_match ensures all rasters have the same bounds (minlon, minlat, maxlon, maxlat)
+    """Resample and crop the raster_input.
+
+    Goal is to have the same bounds, projection, and resolution as the reference_raster:
+    reproject_match ensures all rasters have the same bounds
+    (minlon, minlat, maxlon, maxlat)
     """
     # create reference raster with the same bounds as given shapes
     shapes = gpd.read_parquet(shapes_path)
@@ -157,30 +235,40 @@ def get_same_shape_and_resolution(
         projection=projection,
         resolution=resolution,
     )
+    resampled = xr.Dataset()
 
     pixel_area = determine_pixel_areas(
         reference_raster,
         bounds=shapes.total_bounds,
         resolution=resolution,
     )
-    print("pixel area", pixel_area.dims, pixel_area)
-    pixel_area.to_netcdf(output_path_pixel_area)
-
-    # Resamples the raster to a specified resolution and projection as the given sample
-    resampled = xr.Dataset()
+    print(f"Pixel area: {pixel_area.dims}, {pixel_area}")
+    resampled["pixel_area"] = pixel_area
 
     # slope in fraction
-    ds_slope = xr.open_dataset(slope_path, engine="netcdf4")
-    resampled["slope_too_steep"] = (
-        ds_slope["slope_too_steep"]
-        .astype(float)
-        .rio.reproject_match(reference_raster, resampling=Resampling.average)
+    da_slope = rxr.open_rasterio(slope_path)
+
+    slope_too_steep = da_slope > max_slope
+
+    resampled["slope"] = da_slope.astype(float).rio.reproject_match(
+        reference_raster, resampling=Resampling.average
+    )
+
+    resampled["slope_too_steep"] = slope_too_steep.astype(float).rio.reproject_match(
+        reference_raster, resampling=Resampling.average
+    )
+
+    ##
+    # Land cover
+    ##
+    suitable_land_cover_types = yaml.safe_load(suitable_land_cover_types)
+    land_cover = ds_land_cover = rxr.open_rasterio(land_cover_path)
+    ds_land_cover = get_suitable_land_cover_type(
+        land_cover, suitable_land_cover_types.keys()
     )
 
     # land cover in fraction
-    ds_land_cover = xr.open_dataset(land_cover_path, engine="netcdf4")
-    suitable_land_cover_types_dict = yaml.safe_load(suitable_land_cover_types)
-    for land_type, value in suitable_land_cover_types_dict.items():
+    for land_type, value in suitable_land_cover_types.items():
         skip = []
         if value == 0:
             skip.append(land_type)  # skip land cover types with 0 weight
@@ -199,11 +287,6 @@ def get_same_shape_and_resolution(
     )
     print("resampled settlement", resampled.dims, resampled.coords, resampled)
 
-    # # remove the attributes from the data_vars to avoid AttributeError: NetCDF: String match to name in use
-    # for v in resampled.data_vars:
-    #     print(f"{v}: {resampled[v].attrs}")
-    #     resampled[v].attrs = {}
-    # resampled.rio.write_crs("EPSG:4326", inplace=True)
     resampled.to_netcdf(output_path)
 
 
