@@ -6,14 +6,12 @@ import yaml
 
 @click.command()
 @click.argument("masked_path", type=str)
-@click.argument("pixel_area_path", type=str)
 @click.argument("technical_mask", type=str)
 @click.argument("protected_area_path", type=str)
 @click.argument("shapes_path", type=str)
 @click.argument("output_path", type=str)
 def get_area_potential(
     masked_path,
-    pixel_area_path,
     technical_mask,
     protected_area_path,
     shapes_path,
@@ -49,9 +47,8 @@ def get_area_potential(
 
     # multiply pixel area to get area potential
     # cut with given shape to return raster inside the shape
-    pixel_area = xr.open_dataset(pixel_area_path)
     shapes = gpd.read_parquet(shapes_path)
-    ds_area_potential = eligible_fraction * pixel_area
+    ds_area_potential = eligible_fraction * ds_masked["pixel_area"]
     ds_area_potential = ds_area_potential.rio.clip(
         shapes.geometry, shapes.crs, invert=False
     )
