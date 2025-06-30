@@ -1,34 +1,53 @@
 import click
 import rioxarray as rxr
+import yaml
 
 
 @click.command()
 @click.argument("resampled_path", type=str)
 @click.argument("pixel_area_path", type=str)
-@click.argument("technical_mask", type=int)
+@click.argument("suitable_land_cover_types", type=str)
+@click.argument("max_settlement", type=float)
 @click.argument("output_path", type=str)
-def apply_technical_mask(resampled_path, pixel_area_path, technical_mask, output_path):
+def apply_technical_mask(
+    resampled_path,
+    pixel_area_path,
+    suitable_land_cover_types,
+    max_settlement,
+    output_path,
+):
     ds_resampled = rxr.open_rasterio(resampled_path)
+    ds_resampled.rio.write_crs("EPSG:4326", inplace=True)
+    print("ds_resampled before applying technical mask", ds_resampled)
 
     # get fraction of settlement (built-up surface) compared to pixel area, both in m2
     pixel_area = rxr.open_rasterio(pixel_area_path)
+    pixel_area.rio.write_crs("EPSG:4326", inplace=True)
     ds_resampled["settlement"] = ds_resampled["settlement"] / pixel_area
 
     # only keep pixel with fraction sum of suitable land cover >= 0.5,
     # too steep slope < 0.5
     # settlement <= max_settlement
-    suitable_land_cover_types = [
-        type != 0 for type in technical_mask["land_cover"].items
+    suitable_land_cover_types = yaml.safe_load(suitable_land_cover_types)
+
+    land_cover_types = [
+        type for type, value in suitable_land_cover_types.items() if value != 0
     ]
     land_cover_mask = (
-        ds_resampled[suitable_land_cover_types].to_array().sum(dim="variable") >= 0.5
+        ds_resampled[land_cover_types].to_array().sum(dim="variable") >= 0.5
     )
     combined_mask = (
-        (ds_resampled["slope"] < 0.5)
+        (ds_resampled["slope_too_steep"] < 0.5)
         & land_cover_mask
-        & (ds_resampled["settlement"] <= technical_mask["settlement"]["max_settlement"])
+        & (ds_resampled["settlement"] <= max_settlement)
     )
     ds_resampled = ds_resampled.where(combined_mask)
+    print("ds_resampled before saving", ds_resampled)
+    # remove the attributes from the data_vars to avoid AttributeError: NetCDF: String match to name in use
+    for v in ds_resampled.data_vars:
+        print(f"{v}: {ds_resampled[v].attrs}")
+        ds_resampled[v].attrs = {}
+    ds_resampled.rio.write_crs("EPSG:4326", inplace=True)
     ds_resampled.to_netcdf(output_path)
 
 

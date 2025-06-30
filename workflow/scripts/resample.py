@@ -183,7 +183,7 @@ def get_same_shape_and_resolution(
     for land_type, value in suitable_land_cover_types_dict.items():
         skip = []
         if value == 0:
-            skip.append(land_type)  # skip this one
+            skip.append(land_type)  # skip land cover types with 0 weight
         else:
             resampled[land_type] = ds_land_cover[land_type].rio.reproject_match(
                 reference_raster, resampling=Resampling.average
@@ -204,6 +204,11 @@ def get_same_shape_and_resolution(
     )
     print("resampled settlement", resampled.dims, resampled.coords, resampled)
 
+    # remove the attributes from the data_vars to avoid AttributeError: NetCDF: String match to name in use
+    for v in resampled.data_vars:
+        print(f"{v}: {resampled[v].attrs}")
+        resampled[v].attrs = {}
+    resampled.rio.write_crs("EPSG:4326", inplace=True)
     resampled.to_netcdf(output_path)
 
 
