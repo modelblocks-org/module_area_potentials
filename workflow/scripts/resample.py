@@ -6,6 +6,7 @@ import xarray as xr
 import numpy as np
 from rasterio.transform import from_bounds
 from rasterio.enums import Resampling
+import yaml
 
 
 def create_empty_geospatial_array(
@@ -124,9 +125,10 @@ def determine_pixel_areas(raster_input, bounds, resolution, output_name):
 
 
 @click.command()
-@click.argument("shapes_path")
-@click.argument("specs")
-@click.argument("criteria")
+@click.argument("shapes_path", type=str)
+@click.argument("projection", type=str)
+@click.argument("resolution", type=str)
+@click.argument("suitable_land_cover_types", type=str)
 @click.argument("slope_path", type=str)
 @click.argument("land_cover_path", type=str)
 @click.argument("settlement_path", type=str)
@@ -134,7 +136,8 @@ def determine_pixel_areas(raster_input, bounds, resolution, output_name):
 @click.argument("output_path", type=str)
 def get_same_shape_and_resolution(
     shapes_path,
-    specs,
+    projection,
+    resolution,
     suitable_land_cover_types,
     slope_path,
     land_cover_path,
@@ -151,14 +154,14 @@ def get_same_shape_and_resolution(
     shapes = gpd.read_parquet(shapes_path)
     reference_raster = create_empty_geospatial_array(
         bounds=shapes.total_bounds,
-        projection=specs["projection"],
-        resolution=specs["resolution"],
+        projection=projection,
+        resolution=resolution,
     )
 
     pixel_area = determine_pixel_areas(
         reference_raster,
         bounds=shapes.total_bounds,
-        projection=specs["projection"],
+        projection=projection,
     )
     pixel_area.to_netcdf(output_path_pixel_area)
 
@@ -173,7 +176,8 @@ def get_same_shape_and_resolution(
 
     # land cover in fraction
     ds_land_cover = rxr.open_dataset(land_cover_path)
-    for land_type, value in suitable_land_cover_types.items():
+    suitable_land_cover_types_dict = yaml.safe_load(suitable_land_cover_types)
+    for land_type, value in suitable_land_cover_types_dict.items():
         skip = []
         if value == 0:
             skip.append(land_type)  # skip this one
