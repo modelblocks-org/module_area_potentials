@@ -170,15 +170,15 @@ def get_same_shape_and_resolution(
     resampled = xr.Dataset()
 
     # slope in fraction
-    ds_slope = rxr.open_rasterio(slope_path)
-    ds_slope.rio.write_crs("EPSG:4326", inplace=True)
-    resampled["slope_too_steep"] = ds_slope.astype(float).rio.reproject_match(
-        reference_raster, resampling=Resampling.average
+    ds_slope = xr.open_dataset(slope_path, engine="netcdf4")
+    resampled["slope_too_steep"] = (
+        ds_slope["slope_too_steep"]
+        .astype(float)
+        .rio.reproject_match(reference_raster, resampling=Resampling.average)
     )
 
     # land cover in fraction
-    ds_land_cover = rxr.open_rasterio(land_cover_path)
-    ds_land_cover.rio.write_crs("EPSG:4326", inplace=True)
+    ds_land_cover = xr.open_dataset(land_cover_path, engine="netcdf4")
     suitable_land_cover_types_dict = yaml.safe_load(suitable_land_cover_types)
     for land_type, value in suitable_land_cover_types_dict.items():
         skip = []
@@ -188,11 +188,6 @@ def get_same_shape_and_resolution(
             resampled[land_type] = ds_land_cover[land_type].rio.reproject_match(
                 reference_raster, resampling=Resampling.average
             )
-
-            # TEST if it's necessary to clip again with cutout
-            # # Crops the input raster to the specified geographic bounds
-            # # from the bounding box of the sample raster
-            # resampled[land_type] = tmp_var.rio.clip_box(*shapes.total_bounds)
 
     print(f"Skip the land cover types not used in this tech: {skip}")
 
@@ -204,11 +199,11 @@ def get_same_shape_and_resolution(
     )
     print("resampled settlement", resampled.dims, resampled.coords, resampled)
 
-    # remove the attributes from the data_vars to avoid AttributeError: NetCDF: String match to name in use
-    for v in resampled.data_vars:
-        print(f"{v}: {resampled[v].attrs}")
-        resampled[v].attrs = {}
-    resampled.rio.write_crs("EPSG:4326", inplace=True)
+    # # remove the attributes from the data_vars to avoid AttributeError: NetCDF: String match to name in use
+    # for v in resampled.data_vars:
+    #     print(f"{v}: {resampled[v].attrs}")
+    #     resampled[v].attrs = {}
+    # resampled.rio.write_crs("EPSG:4326", inplace=True)
     resampled.to_netcdf(output_path)
 
 

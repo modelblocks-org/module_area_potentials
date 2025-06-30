@@ -1,5 +1,5 @@
 import click
-import rioxarray as rxr
+import xarray as xr
 import yaml
 
 
@@ -16,14 +16,13 @@ def apply_technical_mask(
     max_settlement,
     output_path,
 ):
-    ds_resampled = rxr.open_rasterio(resampled_path)
-    ds_resampled.rio.write_crs("EPSG:4326", inplace=True)
+    ds_resampled = xr.open_dataset(resampled_path, engine="netcdf4")
     print("ds_resampled before applying technical mask", ds_resampled)
 
     # get fraction of settlement (built-up surface) compared to pixel area, both in m2
-    pixel_area = rxr.open_rasterio(pixel_area_path)
-    pixel_area.rio.write_crs("EPSG:4326", inplace=True)
-    ds_resampled["settlement"] = ds_resampled["settlement"] / pixel_area
+    pixel_area = xr.open_dataset(pixel_area_path, engine="netcdf4")
+    ds_resampled["settlement"] = ds_resampled["settlement"] / pixel_area["pixel_area"]
+    print("ds_resampled after calculating settlement", ds_resampled)
 
     # only keep pixel with fraction sum of suitable land cover >= 0.5,
     # too steep slope < 0.5
@@ -43,11 +42,10 @@ def apply_technical_mask(
     )
     ds_resampled = ds_resampled.where(combined_mask)
     print("ds_resampled before saving", ds_resampled)
-    # remove the attributes from the data_vars to avoid AttributeError: NetCDF: String match to name in use
-    for v in ds_resampled.data_vars:
-        print(f"{v}: {ds_resampled[v].attrs}")
-        ds_resampled[v].attrs = {}
-    ds_resampled.rio.write_crs("EPSG:4326", inplace=True)
+    # # remove the attributes from the data_vars to avoid AttributeError: NetCDF: String match to name in use
+    # for v in ds_resampled.data_vars:
+    #     print(f"{v}: {ds_resampled[v].attrs}")
+    #     ds_resampled[v].attrs = {}
     ds_resampled.to_netcdf(output_path)
 
 
