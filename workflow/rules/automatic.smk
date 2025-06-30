@@ -94,7 +94,7 @@ rule unzip_globcover:
 
 rule download_ghsl:
     message:
-        "Download the GHSL (Global Human Settlement Layer) built-up surface data (R2023, GHS-BUILT-S, 100m resolution, ~2 GB)."
+        "Download the GHSL (Global Human Settlement Layer) built-up surface data."
     params:
         url=internal["resources"]["automatic"]["ghsl"],
     output:

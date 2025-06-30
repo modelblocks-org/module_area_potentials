@@ -3,13 +3,48 @@ description: "Schema for user-provided configuration files."
 type: object
 additionalProperties: false
 properties:
-  techs:
+  specs:
+    type: object
+    properties:
+      projection:
+        type: string
+      resolution:
+        type: number
+    required: [projection, resolution]
+    additionalProperties: false
+
+  techs_onshore:
     type: object
     additionalProperties:
       type: object
-      additionalProperties: false
       properties:
         max_slope:
           type: number
-      required: [max_slope]
-required: [techs]
+        land_cover:
+          type: object
+          additionalProperties:
+            type: number
+        settlement:
+          type: object
+          properties:
+            max_settlement:
+              type: number
+            weight:
+              type: number
+          required: [max_settlement, weight]
+          additionalProperties: false
+      required: [max_slope, land_cover, settlement]
+      additionalProperties: false
+required: [techs_onshore]
+
+# properties:
+#   techs:
+#     type: object
+#     additionalProperties:
+#       type: object
+#       additionalProperties: false
+#       properties:
+#         max_slope:
+#           type: number
+#       required: [max_slope]
+# required: [techs]
