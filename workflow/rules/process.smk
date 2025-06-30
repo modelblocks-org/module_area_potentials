@@ -58,7 +58,7 @@ rule resample_same_resolution:
 
 rule technical_mask:
     message:
-        "Get areas with slope values greater than max_slope, i.e. too steep/not suitable for the tech {wildcards.tech}.",
+        "Get fraction satisfied all technical criteria: not too steep slope, suitable land cover, and not exceeding max_settlement for the tech {wildcards.tech}.",
     params:
         suitable_land_cover_types=lambda wildcards: config["techs_onshore"][f"{wildcards.tech}"]["land_cover"],
         max_settlement=lambda wildcards: config["techs_onshore"][f"{wildcards.tech}"]["settlement"]["max_settlement"],
@@ -77,7 +77,7 @@ rule technical_mask:
 
 rule area_potential:
     message:
-        "Get areas with slope values greater than max_slope, i.e. too steep/not suitable for the tech {wildcards.tech}.",
+        "Apply weights, mask out protected area then calculate the potential area for the tech {wildcards.tech}.",
     params:
         technical_mask=lambda wildcards: config["techs_onshore"][f"{wildcards.tech}"]
     input:
