@@ -10,7 +10,7 @@ rule slope_too_steep:
         script=workflow.source_path("../scripts/get_slope_too_steep.py"),
         shapes=rules.download_cutout_slope.output,
     output:
-        "resources/tmp/slope_too_steep_{tech}.nc",
+        "resources/automatic/slope_too_steep_{tech}.nc",
     conda:
         "../envs/default.yaml"
     shell:
@@ -20,12 +20,12 @@ rule suitable_land_cover:
     message:
         "Get suitable land cover types for the tech {wildcards.tech}.",
     params:
-        suitable_land_cover_types=lambda wildcards: config["techs_onshore"][f"{wildcards.tech}"]["land_cover"]
+        suitable_land_cover_types=lambda wildcards: list(config["techs_onshore"][f"{wildcards.tech}"]["land_cover"].keys()),
     input:
         script=workflow.source_path("../scripts/get_suitable_land_cover_types.py"),
         shapes=rules.cutout_landcover.output,
     output:
-        "resources/tmp/suitable_land_cover_{tech}.nc",
+        "resources/automatic/suitable_land_cover_{tech}.nc",
     conda:
         "../envs/default.yaml"
     shell:
@@ -35,8 +35,9 @@ rule resample_same_resolution:
     message:
         "Resample slope, land cover, and settlement to the same resolution for the tech {wildcards.tech}.",
     params:
-        specs=config["specs"]
-        suitable_land_cover_types=lambda wildcards: config["techs_onshore"][f"{wildcards.tech}"]["land_cover"]
+        projection=config["specs"]["projection"],
+        resolution=config["specs"]["resolution"],
+        suitable_land_cover_types=lambda wildcards: config["techs_onshore"][f"{wildcards.tech}"]["land_cover"],
     input:
         script=workflow.source_path("../scripts/resample.py"),
         shapes_path="resources/user/shapes.parquet",
@@ -44,12 +45,14 @@ rule resample_same_resolution:
         land_cover_path=rules.suitable_land_cover.output,
         settlement_path=rules.cutout_settlement.output,
     output:
-        pixel_area="resources/tmp/pixel_area.nc",
-        resampled="resources/tmp/resampled_input_{tech}.nc",
+        pixel_area="resources/automatic/pixel_area_{tech}.nc",
+        resampled="resources/automatic/resampled_input_{tech}.nc",
     conda:
         "../envs/default.yaml"
     shell:
-        "python {input.script} {input.shapes_path} {params.specs} {params.suitable_land_cover_types} {input.slope_path} {input.land_cover_path} {input.settlement_path} {output.pixel_area} {output.resampled}"
+        """
+        python "{input.script}" "{input.shapes_path}" "{params.projection}" "{params.resolution}" "{params.suitable_land_cover_types}" "{input.slope_path}" "{input.land_cover_path}" "{input.settlement_path}" "{output.pixel_area}" "{output.resampled}"
+        """
 
 rule technical_mask:
     message:
@@ -61,7 +64,7 @@ rule technical_mask:
         pixel_area_path=rules.resample_same_resolution.output.pixel_area,
         resampled_path=rules.resample_same_resolution.output.resampled,
     output:
-        "resources/tmp/technical_masked_{tech}.nc",
+        "resources/automatic/technical_masked_{tech}.nc",
     conda:
         "../envs/default.yaml"
     shell:

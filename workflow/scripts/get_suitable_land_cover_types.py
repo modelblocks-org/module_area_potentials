@@ -65,7 +65,7 @@ CoverType = {
 
 @click.command()
 @click.argument("land_cover_path", type=str)
-@click.argument("suitable_land_cover_types", type=int)
+@click.argument("suitable_land_cover_types", type=str, nargs=-1)
 @click.argument("output_path", type=str)
 def get_suitable_land_cover_type(
     land_cover_path, suitable_land_cover_types, output_path
@@ -83,7 +83,8 @@ def get_suitable_land_cover_type(
     # check if each pixel is in the list of suitable land cover types
     for type in suitable_land_cover_types:
         suitable_land_cover[type] = (ds_land_cover == type).astype(float)
-        suitable_land_cover.to_netcdf(output_path)
+
+    suitable_land_cover.to_netcdf(output_path)
 
 
 if __name__ == "__main__":

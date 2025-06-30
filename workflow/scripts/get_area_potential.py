@@ -34,6 +34,9 @@ def get_area_potential(
         + ds_masked["settlement"] * technical_mask["settlement"]["weight"]
     )
 
+    # remove negative values and values greater than 1
+    eligible_fraction = eligible_fraction.clip(0, 1)
+
     # mask out protected area
     protected_areas = gpd.read_file(protected_area_path)
     eligible_fraction = eligible_fraction.rio.clip(
