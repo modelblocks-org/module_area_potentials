@@ -90,7 +90,7 @@ def _area_of_pixel(pixel_size, center_lat):
     return pixel_size / 360.0 * (area_list[0] - area_list[1]) / 1e6
 
 
-def determine_pixel_areas(raster_input, bounds, resolution, output_name):
+def determine_pixel_areas(raster_input, bounds, resolution):
     """Returns a raster in which the value corresponds to the area in [m2] of the pixel.
     based on T.Troendle determine_pixel_areas (utils.py and technically_eligible_area.py)
     This assumes the data comprises square pixel in WGS84.
@@ -127,7 +127,7 @@ def determine_pixel_areas(raster_input, bounds, resolution, output_name):
 @click.command()
 @click.argument("shapes_path", type=str)
 @click.argument("projection", type=str)
-@click.argument("resolution", type=str)
+@click.argument("resolution", type=float)
 @click.argument("suitable_land_cover_types", type=str)
 @click.argument("slope_path", type=str)
 @click.argument("land_cover_path", type=str)
@@ -161,21 +161,24 @@ def get_same_shape_and_resolution(
     pixel_area = determine_pixel_areas(
         reference_raster,
         bounds=shapes.total_bounds,
-        projection=projection,
+        resolution=resolution,
     )
+    print("pixel area", pixel_area.dims, pixel_area)
     pixel_area.to_netcdf(output_path_pixel_area)
 
     # Resamples the raster to a specified resolution and projection as the given sample
     resampled = xr.Dataset()
 
     # slope in fraction
-    ds_slope = rxr.open_dataset(slope_path)
+    ds_slope = rxr.open_rasterio(slope_path)
+    ds_slope.rio.write_crs("EPSG:4326", inplace=True)
     resampled["slope_too_steep"] = ds_slope.astype(float).rio.reproject_match(
         reference_raster, resampling=Resampling.average
     )
 
     # land cover in fraction
-    ds_land_cover = rxr.open_dataset(land_cover_path)
+    ds_land_cover = rxr.open_rasterio(land_cover_path)
+    ds_land_cover.rio.write_crs("EPSG:4326", inplace=True)
     suitable_land_cover_types_dict = yaml.safe_load(suitable_land_cover_types)
     for land_type, value in suitable_land_cover_types_dict.items():
         skip = []
@@ -195,9 +198,11 @@ def get_same_shape_and_resolution(
 
     # settlement in sum of area of built-up surface (m2)
     ds_settlement = rxr.open_rasterio(settlement_path)
+    ds_settlement.rio.write_crs("EPSG:4326", inplace=True)
     resampled["settlement"] = ds_settlement.rio.reproject_match(
         reference_raster, resampling=Resampling.sum
     )
+    print("resampled settlement", resampled.dims, resampled.coords, resampled)
 
     resampled.to_netcdf(output_path)
 
