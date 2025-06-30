@@ -1,7 +1,5 @@
 """Cut out the datasets to bounds determined by the input shapefile."""
 
-BASE_DIR = workflow.basedir
-
 rule cutout_landcover:
     message:
         "Cut land cover data to the bounds of the input shapefile."
