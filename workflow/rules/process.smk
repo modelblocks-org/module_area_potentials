@@ -91,4 +91,6 @@ rule area_potential:
     conda:
         "../envs/default.yaml"
     shell:
-        "python {input.script} {input.masked_path} {input.pixel_area_path} {params.technical_mask} {input.protected_area_path} {input.shapes_path} {output}"
+        """
+        python "{input.script}" "{input.masked_path}" "{input.pixel_area_path}" "{params.technical_mask}" "{input.protected_area_path}" "{input.shapes_path}" "{output}"
+        """
