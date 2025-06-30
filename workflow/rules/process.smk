@@ -51,7 +51,9 @@ rule resample_same_resolution:
         "../envs/default.yaml"
     shell:
         """
-        python "{input.script}" "{input.shapes_path}" "{params.projection}" "{params.resolution}" "{params.suitable_land_cover_types}" "{input.slope_path}" "{input.land_cover_path}" "{input.settlement_path}" "{output.pixel_area}" "{output.resampled}"
+        python "{input.script}" "{input.shapes_path}" "{params.projection}" "{params.resolution}" \
+        "{params.suitable_land_cover_types}" "{input.slope_path}" "{input.land_cover_path}" "{input.settlement_path}" \
+        "{output.pixel_area}" "{output.resampled}"
         """
 
 rule technical_mask:
