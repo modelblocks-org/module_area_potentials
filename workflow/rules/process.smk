@@ -60,17 +60,20 @@ rule technical_mask:
     message:
         "Get areas with slope values greater than max_slope, i.e. too steep/not suitable for the tech {wildcards.tech}.",
     params:
-        technical_mask=lambda wildcards: config["techs_onshore"][f"{wildcards.tech}"]
+        suitable_land_cover_types=lambda wildcards: config["techs_onshore"][f"{wildcards.tech}"]["land_cover"],
+        max_settlement=lambda wildcards: config["techs_onshore"][f"{wildcards.tech}"]["settlement"]["max_settlement"],
     input:
         script=workflow.source_path("../scripts/apply_technical_mask.py"),
-        pixel_area_path=rules.resample_same_resolution.output.pixel_area,
         resampled_path=rules.resample_same_resolution.output.resampled,
+        pixel_area_path=rules.resample_same_resolution.output.pixel_area,
     output:
         "resources/automatic/technical_masked_{tech}.nc",
     conda:
         "../envs/default.yaml"
     shell:
-        "python {input.script} {input.resampled_path} {input.pixel_area_path} {params.technical_mask} {output}"
+        """
+        python "{input.script}" "{input.resampled_path}" "{input.pixel_area_path}" "{params.suitable_land_cover_types}" "{params.max_settlement}" "{output}"
+        """
 
 rule area_potential:
     message:
