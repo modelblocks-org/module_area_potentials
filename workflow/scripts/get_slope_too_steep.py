@@ -9,7 +9,8 @@ import rioxarray as rxr
 def get_slope_too_steep(slope_path, max_slope, output_path):
     ds_slope = rxr.open_rasterio(slope_path)
     is_too_steep_slope = ds_slope > max_slope
-    is_too_steep_slope.to_netcdf(output_path)
+    ds_out = is_too_steep_slope.to_dataset(name="slope_too_steep")
+    ds_out.to_netcdf(output_path)
 
 
 if __name__ == "__main__":
