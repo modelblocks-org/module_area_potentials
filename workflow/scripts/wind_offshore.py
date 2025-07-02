@@ -69,11 +69,12 @@ def area_potential_wind_offshore(
     )
 
     # keep only bathymetry in sea area using land sea mask
+    # NOTE: maybe remove this step since we already include EEZ outside buffer 10 km from coastline
     ds_land_sea_mask = rxr.open_rasterio(land_sea_mask_path)
     ds_land_sea_mask = ds_land_sea_mask.rio.reproject_match(
-        ds_bathymetry, resampling=Resampling.mode
+        pixel_area, resampling=Resampling.mode
     )
-    resampled["masked_bathymetry"] = masked_bathymetry.where(
+    resampled["bathymetry"] = resampled["bathymetry"].where(
         ds_land_sea_mask == 1, other=0
     )
 
