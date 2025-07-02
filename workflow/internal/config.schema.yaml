@@ -37,6 +37,17 @@ properties:
       additionalProperties: false
 
   techs_offshore:
+    type: object
+    additionalProperties:
       type: object
+      properties:
+        water_depth:
+          type: object
+          additionalProperties:
+            type: number
+        weight:
+          type: number
+      required: [water_depth, weight]
+      additionalProperties: false
 
-required: [techs_onshore]
+required: [techs_onshore, techs_offshore]

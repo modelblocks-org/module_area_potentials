@@ -38,3 +38,7 @@ techs_onshore:
 
 techs_offshore:
   wind_offshore:
+    water_depth:
+      max: 0
+      min: -50
+    weight: 0.8
