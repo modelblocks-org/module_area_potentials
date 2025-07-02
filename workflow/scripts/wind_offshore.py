@@ -15,7 +15,6 @@ from resample import create_empty_geospatial_array, determine_pixel_areas
 @click.argument("resolution", type=float)
 @click.argument("bathymetry_path", type=str)
 @click.argument("water_depth", type=str)
-@click.argument("land_sea_mask_path", type=str)
 @click.argument("protected_area_path", type=str)
 @click.argument("weight", type=float)
 @click.argument("output_path", type=str)
@@ -25,7 +24,6 @@ def area_potential_wind_offshore(
     resolution,
     bathymetry_path,
     water_depth,
-    land_sea_mask_path,
     protected_area_path,
     weight,
     output_path,
@@ -66,16 +64,6 @@ def area_potential_wind_offshore(
 
     resampled["bathymetry"] = masked_bathymetry.rio.reproject_match(
         reference_raster, resampling=Resampling.average
-    )
-
-    # keep only bathymetry in sea area using land sea mask
-    # NOTE: maybe remove this step since we already include EEZ outside buffer 10 km from coastline
-    ds_land_sea_mask = rxr.open_rasterio(land_sea_mask_path)
-    ds_land_sea_mask = ds_land_sea_mask.rio.reproject_match(
-        pixel_area, resampling=Resampling.mode
-    )
-    resampled["bathymetry"] = resampled["bathymetry"].where(
-        ds_land_sea_mask == 1, other=0
     )
 
     print(f"Resampled bathymetry and land sea mask: {resampled.dims}, {resampled}")

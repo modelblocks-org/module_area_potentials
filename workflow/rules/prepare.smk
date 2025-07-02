@@ -15,20 +15,6 @@ rule cutout_landcover:
         rio clip --overwrite "{input.landcover}" "{output}" --bounds "$(fio info '{input.shapes}' --bounds)"
         """
 
-rule cutout_landseamask:
-    message:
-        "Cut land seamask data to the bounds of the input shapefile."
-    input:
-        shapes="resources/user/shapes.parquet",
-        landseamask=rules.unzip_globcover.output.landseamask,
-    output:
-        "resources/cutout/landseamask.tif",
-    conda:
-        "../envs/default.yaml"
-    shell:
-        """
-        rio clip --overwrite "{input.landseamask}" "{output}" --bounds "$(fio info '{input.shapes}' --bounds)"
-        """
 
 rule cutout_settlement:
     message:
