@@ -63,3 +63,28 @@ rule area_potential_onshore:
         """
         python "{input.script}" "{input.masked_path}" "{params.technical_mask}" "{input.protected_area_path}" "{input.shapes}" "{output}"
         """
+
+rule area_potential_offshore:
+    message:
+        "Get area potential for the tech {wildcards.tech_offshore}"
+    params:
+        projection=config["specs"]["projection"],
+        resolution=config["specs"]["resolution"],
+        water_depth=lambda wildcards: config["techs_offshore"][f"{wildcards.tech_offshore}"]["water_depth"],
+        weight=lambda wildcards: config["techs_offshore"][f"{wildcards.tech_offshore}"]["weight"],
+    input:
+        script=workflow.source_path("../scripts/wind_offshore.py"),
+        shapes="resources/user/shapes.parquet",
+        bathymetry_path=rules.download_cutout_bathymetry.output,
+        land_sea_mask_path=rules.cutout_landseamask.output,
+        protected_area_path=rules.unzip_wdpa.output,
+    output:
+        "results/area_potential_{tech_offshore}.nc",
+    conda:
+        "../envs/default.yaml"
+    shell:
+        """
+        python "{input.script}" "{input.shapes}" "{params.projection}" "{params.resolution}" \
+        "{input.bathymetry_path}" "{params.water_depth}" "{input.land_sea_mask_path}" \
+        "{input.protected_area_path}" "{params.weight}" "{output}"
+        """
