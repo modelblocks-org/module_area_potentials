@@ -76,7 +76,6 @@ rule area_potential_offshore:
         script=workflow.source_path("../scripts/wind_offshore.py"),
         shapes="resources/user/shapes.parquet",
         bathymetry_path=rules.download_cutout_bathymetry.output,
-        land_sea_mask_path=rules.cutout_landseamask.output,
         protected_area_path=rules.unzip_wdpa.output,
     output:
         "results/area_potential_{tech_offshore}.nc",
@@ -85,6 +84,5 @@ rule area_potential_offshore:
     shell:
         """
         python "{input.script}" "{input.shapes}" "{params.projection}" "{params.resolution}" \
-        "{input.bathymetry_path}" "{params.water_depth}" "{input.land_sea_mask_path}" \
-        "{input.protected_area_path}" "{params.weight}" "{output}"
+        "{input.bathymetry_path}" "{params.water_depth}" "{input.protected_area_path}" "{params.weight}" "{output}"
         """
