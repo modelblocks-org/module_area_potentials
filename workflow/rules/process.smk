@@ -59,7 +59,7 @@ rule area_potential_onshore:
     params:
         technical_mask=lambda wildcards: config["techs_onshore"][f"{wildcards.tech_onshore}"]
     input:
-        script=workflow.source_path("../scripts/get_area_potential.py"),
+        script=workflow.source_path("../scripts/potential_onshore.py"),
         shapes="resources/user/shapes.parquet",
         masked_path=rules.technical_mask_onshore.output.technical_mask,
         protected_area_path=rules.unzip_wdpa.output,
@@ -85,7 +85,7 @@ rule area_potential_offshore:
         water_depth=lambda wildcards: config["techs_offshore"][f"{wildcards.tech_offshore}"]["water_depth"],
         weight=lambda wildcards: config["techs_offshore"][f"{wildcards.tech_offshore}"]["weight"],
     input:
-        script=workflow.source_path("../scripts/wind_offshore.py"),
+        script=workflow.source_path("../scripts/potential_offshore.py"),
         shapes="resources/user/shapes.parquet",
         bathymetry_path=rules.download_cutout_bathymetry.output,
         protected_area_path=rules.unzip_wdpa.output,
