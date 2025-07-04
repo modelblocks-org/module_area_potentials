@@ -5,7 +5,7 @@ rule cutout_landcover:
         "Cut land cover data to the bounds of the input shapefile."
     input:
         shapes="resources/user/shapes.parquet",
-        landcover=rules.unzip_globcover.output.landcover,
+        landcover=rules.unzip_globcover.output,
     output:
         "resources/cutout/landcover.tif",
     conda:

@@ -1,5 +1,6 @@
 import click
 import geopandas as gpd
+import matplotlib.pyplot as plt
 import xarray as xr
 import yaml
 
@@ -10,12 +11,14 @@ import yaml
 @click.argument("protected_area_path", type=str)
 @click.argument("shapes_path", type=str)
 @click.argument("output_path", type=str)
+@click.argument("plot_path", type=str)
 def get_area_potential(
     masked_path,
     technical_mask,
     protected_area_path,
     shapes_path,
     output_path,
+    plot_path,
 ):
     ds_masked = xr.open_dataset(masked_path)
     technical_mask = yaml.safe_load(technical_mask)
@@ -53,6 +56,9 @@ def get_area_potential(
         shapes.geometry, shapes.crs, invert=False
     )
     ds_area_potential.to_netcdf(output_path)
+
+    plot = ds_area_potential.plot()
+    plt.savefig(plot_path, bbox_inches="tight")
 
 
 if __name__ == "__main__":

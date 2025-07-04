@@ -1,10 +1,10 @@
 import click
-import yaml
 import geopandas as gpd
-import xarray as xr
+import matplotlib.pyplot as plt
 import rioxarray as rxr
+import xarray as xr
+import yaml
 from rasterio.enums import Resampling
-from rasterio.features import rasterize
 
 from resample import create_empty_geospatial_array, determine_pixel_areas
 
@@ -18,6 +18,7 @@ from resample import create_empty_geospatial_array, determine_pixel_areas
 @click.argument("protected_area_path", type=str)
 @click.argument("weight", type=float)
 @click.argument("output_path", type=str)
+@click.argument("plot_path", type=str)
 def area_potential_wind_offshore(
     shapes_path,
     projection,
@@ -27,6 +28,7 @@ def area_potential_wind_offshore(
     protected_area_path,
     weight,
     output_path,
+    plot_path,
 ):
     """Get area potential for wind offshore technology.
 
@@ -83,23 +85,23 @@ def area_potential_wind_offshore(
         buffer_geo.geometry, buffer_geo.crs, invert=True
     )
 
-    # # mask out protected area
-    # # FIXME: read the right layer(s) and deal with both poly and point layers
-    # protected_areas = gpd.read_file(protected_area_path)
-    # # files = list(path_protected_area.glob("*_shp_?/*_shp-polygons.shp"))
-    # # gdfs = (gpd.read_file(file) for file in files)  # generator
-    # # protected_areas = gpd.GeoDataFrame(pd.concat(gdfs, ignore_index=True))
+    # mask out protected area
+    # FIXME: read the right layer(s) and deal with both poly and point layers
+    protected_areas = gpd.read_file(protected_area_path)
 
-    # eligible_fraction = eligible_fraction.rio.clip(
-    #     protected_areas.geometry, protected_areas.crs, invert=True
-    # )
+    eligible_fraction = eligible_fraction.rio.clip(
+        protected_areas.geometry, protected_areas.crs, invert=True
+    )
 
     # apply weight, then multiply pixel area to get area potential
-    ds_area_potential = xr.Dataset(
-        {"wind_offshore": eligible_fraction * weight * resampled["pixel_area"]},
+    da_area_potential = xr.Dataset(
+        {"data": eligible_fraction * weight * resampled["pixel_area"]},
         coords=resampled["pixel_area"].coords,
-    )
-    ds_area_potential.to_netcdf(output_path)
+    )["data"]
+    da_area_potential.to_netcdf(output_path)
+
+    plot = da_area_potential.plot()
+    plt.savefig(plot_path, bbox_inches="tight")
 
 
 if __name__ == "__main__":

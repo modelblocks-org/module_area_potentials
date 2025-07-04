@@ -4,6 +4,7 @@ import click
 import geopandas as gpd
 import numpy as np
 import rioxarray as rxr
+import script_utils
 import xarray as xr
 import yaml
 from rasterio.enums import Resampling
@@ -211,6 +212,7 @@ def determine_pixel_areas(raster_input, bounds, resolution):
 @click.argument("settlement_path", type=str)
 @click.argument("max_slope", type=float)
 @click.argument("output_path", type=str)
+@click.argument("plot_path", type=str)
 def get_same_shape_and_resolution(
     shapes_path,
     projection,
@@ -221,6 +223,7 @@ def get_same_shape_and_resolution(
     settlement_path,
     max_slope,
     output_path,
+    plot_path,
 ):
     """Resample and crop the raster_input.
 
@@ -288,6 +291,8 @@ def get_same_shape_and_resolution(
     print("resampled settlement", resampled.dims, resampled.coords, resampled)
 
     resampled.to_netcdf(output_path)
+
+    script_utils.plot_all_dataset_variables(resampled, savefig=plot_path)
 
 
 if __name__ == "__main__":
