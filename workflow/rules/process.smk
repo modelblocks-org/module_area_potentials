@@ -17,14 +17,18 @@ rule resample_same_resolution_onshore:
         land_cover_path=rules.cutout_landcover.output,
         settlement_path=rules.cutout_settlement.output,
     output:
-        "resources/resampled_input_{tech_onshore}.nc",
+        resampled_input="resources/resampled_input_{tech_onshore}.nc",
+        plot=report(
+            "resources/resampled_input_{tech_onshore}.pdf",
+            category="resampled_input",
+        ),
     conda:
         "../envs/default.yaml"
     shell:
         """
         python "{input.script}" "{input.shapes}" "{params.projection}" "{params.resolution}" \
         "{params.suitable_land_cover_types}" "{input.slope_path}" "{input.land_cover_path}" "{input.settlement_path}" "{params.max_slope}" \
-        "{output}"
+        "{output.resampled_input}" "{output.plot}"
         """
 
 rule technical_mask_onshore:
@@ -35,9 +39,13 @@ rule technical_mask_onshore:
         max_settlement=lambda wildcards: config["techs_onshore"][f"{wildcards.tech_onshore}"]["settlement"]["max_settlement"],
     input:
         script=workflow.source_path("../scripts/apply_technical_mask.py"),
-        resampled_path=rules.resample_same_resolution_onshore.output,
+        resampled_path=rules.resample_same_resolution_onshore.output.resampled_input,
     output:
-        "resources/technical_mask_{tech_onshore}.nc",
+        technical_mask="resources/technical_mask_{tech_onshore}.nc",
+        # plot=report(
+        #     "resources/technical_mask_{tech_onshore}.pdf",
+        #     category="technical_mask",
+        # ),
     conda:
         "../envs/default.yaml"
     shell:
@@ -53,15 +61,19 @@ rule area_potential_onshore:
     input:
         script=workflow.source_path("../scripts/get_area_potential.py"),
         shapes="resources/user/shapes.parquet",
-        masked_path=rules.technical_mask_onshore.output,
+        masked_path=rules.technical_mask_onshore.output.technical_mask,
         protected_area_path=rules.unzip_wdpa.output,
     output:
-        "results/area_potential_{tech_onshore}.nc",
+        area_potential="results/area_potential_{tech_onshore}.nc",
+        plot=report(
+            "results/area_potential_{tech_onshore}.png",
+            category="area_potential",
+        ),
     conda:
         "../envs/default.yaml"
     shell:
         """
-        python "{input.script}" "{input.masked_path}" "{params.technical_mask}" "{input.protected_area_path}" "{input.shapes}" "{output}"
+        python "{input.script}" "{input.masked_path}" "{params.technical_mask}" "{input.protected_area_path}" "{input.shapes}" "{output.area_potential}" "{output.plot}"
         """
 
 rule area_potential_offshore:
@@ -78,11 +90,15 @@ rule area_potential_offshore:
         bathymetry_path=rules.download_cutout_bathymetry.output,
         protected_area_path=rules.unzip_wdpa.output,
     output:
-        "results/area_potential_{tech_offshore}.nc",
+        area_potential="results/area_potential_{tech_offshore}.nc",
+        plot=report(
+            "results/area_potential_{tech_offshore}.png",
+            category="area_potential",
+        ),
     conda:
         "../envs/default.yaml"
     shell:
         """
         python "{input.script}" "{input.shapes}" "{params.projection}" "{params.resolution}" \
-        "{input.bathymetry_path}" "{params.water_depth}" "{input.protected_area_path}" "{params.weight}" "{output}"
+        "{input.bathymetry_path}" "{params.water_depth}" "{input.protected_area_path}" "{params.weight}" "{output.area_potential}" "{output.plot}"
         """

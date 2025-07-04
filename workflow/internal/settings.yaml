@@ -11,7 +11,6 @@ resources:
     # Land cover
     globcover: "https://due.esrin.esa.int/files/Globcover2009_V2.3_Global_.zip"
     globcover_landcover_tif: "GLOBCOVER_L4_200901_200912_V2.3.tif"
-    globcover_landseamask_tif: "GLOBCOVER_L4_200901_200912_V2.3_CLA_QL.tif"
     # Built-up areas
     ghsl: "https://jeodpp.jrc.ec.europa.eu/ftp/jrc-opendata/GHSL/GHS_BUILT_S_GLOBE_R2023A/GHS_BUILT_S_E2025_GLOBE_R2023A_4326_30ss/V1-0/GHS_BUILT_S_E2025_GLOBE_R2023A_4326_30ss_V1_0.zip"
     ghsl_tif: "GHS_BUILT_S_E2025_GLOBE_R2023A_4326_30ss_V1_0.tif"

@@ -16,6 +16,7 @@ validate(config, workflow.source_path("internal/config.schema.yaml"))
 with open(workflow.source_path("internal/settings.yaml"), "r") as f:
     internal = yaml.safe_load(f)
 
+workflow.source_path("scripts/script_utils.py")
 
 # Add all your includes here.
 include: "rules/automatic.smk"

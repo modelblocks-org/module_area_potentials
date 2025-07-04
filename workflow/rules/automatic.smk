@@ -71,13 +71,11 @@ rule unzip_globcover:
     message:
         "Unzip the relevant TIF files from the GlobCover zip file."
     params:
-        target_file_1=internal["resources"]["automatic"]["globcover_landcover_tif"],
-        target_file_2=internal["resources"]["automatic"]["globcover_landseamask_tif"],
+        target_file=internal["resources"]["automatic"]["globcover_landcover_tif"],
     input:
         rules.download_globcover.output,
     output:
-        landcover="resources/automatic/globcover-landcover.tif",
-        landseamask="resources/automatic/globcover-landseamask.tif",
+        "resources/automatic/globcover-landcover.tif",
     log:
         "logs/unzip_globcover.log",
     conda:
@@ -85,10 +83,8 @@ rule unzip_globcover:
     shell:
         """
         temp_dir=$(mktemp -d)
-        unzip -j {input} {params.target_file_1} -d $temp_dir
-        unzip -j {input} {params.target_file_2} -d $temp_dir
-        mv $temp_dir/{params.target_file_1} {output.landcover}
-        mv $temp_dir/{params.target_file_2} {output.landseamask}
+        unzip -j {input} {params.target_file} -d $temp_dir
+        mv $temp_dir/{params.target_file} {output}
         rm -R $temp_dir
         """
 
