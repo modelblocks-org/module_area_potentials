@@ -19,7 +19,7 @@ from resample import create_empty_geospatial_array, determine_pixel_areas
 @click.argument("weight", type=float)
 @click.argument("output_path", type=str)
 @click.argument("plot_path", type=str)
-def area_potential_wind_offshore(
+def get_area_potential_offshore(
     shapes_path,
     projection,
     resolution,
@@ -87,7 +87,11 @@ def area_potential_wind_offshore(
 
     # mask out protected area
     # FIXME: read the right layer(s) and deal with both poly and point layers
+    minx, maxx, miny, maxy = shapes.total_bounds
     protected_areas = gpd.read_file(protected_area_path)
+    print(f"Protected areas: {len(protected_areas)}")
+    protected_areas = protected_areas.cx[minx:maxx, miny:maxy]
+    print(f"Protected areas after applying total_bounds: {len(protected_areas)}")
 
     eligible_fraction = eligible_fraction.rio.clip(
         protected_areas.geometry, protected_areas.crs, invert=True
@@ -105,4 +109,4 @@ def area_potential_wind_offshore(
 
 
 if __name__ == "__main__":
-    area_potential_wind_offshore()
+    get_area_potential_offshore()

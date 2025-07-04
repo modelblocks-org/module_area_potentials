@@ -12,7 +12,7 @@ import yaml
 @click.argument("shapes_path", type=str)
 @click.argument("output_path", type=str)
 @click.argument("plot_path", type=str)
-def get_area_potential(
+def get_area_potential_onshore(
     masked_path,
     technical_mask,
     protected_area_path,
@@ -62,4 +62,4 @@ def get_area_potential(
 
 
 if __name__ == "__main__":
-    get_area_potential()
+    get_area_potential_onshore()
