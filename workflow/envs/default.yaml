@@ -17,3 +17,5 @@ dependencies:
   - libgdal-hdf5=3.10.3
   - matplotlib=3.10.3
   - pyyaml
+  - pyproj=3.7.1
+  - utm=0.7.0

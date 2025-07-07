@@ -16,7 +16,9 @@ validate(config, workflow.source_path("internal/config.schema.yaml"))
 with open(workflow.source_path("internal/settings.yaml"), "r") as f:
     internal = yaml.safe_load(f)
 
+# Python files that are imported from other scripts and need to be included when accessing the module
 workflow.source_path("scripts/script_utils.py")
+workflow.source_path("scripts/geo.py")
 
 # Add all your includes here.
 include: "rules/automatic.smk"
