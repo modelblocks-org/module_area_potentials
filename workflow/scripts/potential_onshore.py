@@ -8,14 +8,12 @@ import yaml
 @click.command()
 @click.argument("masked_path", type=str)
 @click.argument("technical_mask", type=str)
-@click.argument("protected_area_path", type=str)
 @click.argument("shapes_path", type=str)
 @click.argument("output_path", type=str)
 @click.argument("plot_path", type=str)
 def get_area_potential_onshore(
     masked_path,
     technical_mask,
-    protected_area_path,
     shapes_path,
     output_path,
     plot_path,
@@ -28,25 +26,22 @@ def get_area_potential_onshore(
     for type, value in technical_mask["land_cover"].items():
         if value == 0:
             continue
-        suitable_land_cover_types.append(type)
-        ds_masked[type] = ds_masked[type] * value
+        key = f"landcover_{type}"
+        suitable_land_cover_types.append(key)
+        ds_masked[key] = ds_masked[key] * value
 
     eligible_fraction = (
         ds_masked[suitable_land_cover_types].to_array().sum(dim="variable")
         - ds_masked["slope_too_steep"]
         + ds_masked["settlement"] * technical_mask["settlement"]["weight"]
     )
+
+    eligible_fraction = eligible_fraction.where(ds_masked["protected"] != 1)
+
     eligible_fraction.rio.write_crs("EPSG:4326", inplace=True)
 
     # remove negative values and values greater than 1
     eligible_fraction = eligible_fraction.clip(0, 1)
-
-    # mask out protected area
-    # FIXME: read the right layer(s) and deal with both poly and point layers
-    protected_areas = gpd.read_file(protected_area_path)
-    eligible_fraction = eligible_fraction.rio.clip(
-        protected_areas.geometry, protected_areas.crs, invert=True
-    )
 
     # multiply pixel area to get area potential
     # cut with given shape to return raster inside the shape

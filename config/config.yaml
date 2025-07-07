@@ -13,7 +13,7 @@ techs_onshore:
       OTHER: 0.2
       URBAN: 0  # no PV open field in urban
     settlement:
-      max_settlement: 0.1 # no PV open field in settlement
+      max_settlement: 0.01 # no PV open field in settlement
       weight: -1
   wind_onshore:
     max_slope: 20
@@ -23,7 +23,7 @@ techs_onshore:
       OTHER: 0.3
       URBAN: 0  # no wind onshore in urban
     settlement:
-      max_settlement: 0.1
+      max_settlement: 0.01
       weight: -1
   pv_rooftop:
     max_slope: 90

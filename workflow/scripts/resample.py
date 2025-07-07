@@ -6,8 +6,8 @@ import numpy as np
 import rioxarray as rxr
 import script_utils
 import xarray as xr
-import yaml
 from rasterio.enums import Resampling
+from rasterio.features import rasterize
 from rasterio.transform import from_bounds
 
 # LAND COVER
@@ -203,25 +203,23 @@ def determine_pixel_areas(raster_input, bounds, resolution):
 
 
 @click.command()
-@click.argument("shapes_path", type=str)
 @click.argument("projection", type=str)
 @click.argument("resolution", type=float)
-@click.argument("suitable_land_cover_types", type=str)
-@click.argument("slope_path", type=str)
+@click.argument("shapes_path", type=str)
 @click.argument("land_cover_path", type=str)
+@click.argument("slope_path", type=str)
 @click.argument("settlement_path", type=str)
-@click.argument("max_slope", type=float)
+@click.argument("protected_area_path", type=str)
 @click.argument("output_path", type=str)
 @click.argument("plot_path", type=str)
 def get_same_shape_and_resolution(
     shapes_path,
     projection,
     resolution,
-    suitable_land_cover_types,
-    slope_path,
     land_cover_path,
+    slope_path,
     settlement_path,
-    max_slope,
+    protected_area_path,
     output_path,
     plot_path,
 ):
@@ -233,6 +231,8 @@ def get_same_shape_and_resolution(
     """
     # create reference raster with the same bounds as given shapes
     shapes = gpd.read_parquet(shapes_path)
+    print(f"Number of shapes: {len(shapes)}")
+    print(f"Requested resolution: {resolution}")
     reference_raster = create_empty_geospatial_array(
         bounds=shapes.total_bounds,
         projection=projection,
@@ -245,50 +245,84 @@ def get_same_shape_and_resolution(
         bounds=shapes.total_bounds,
         resolution=resolution,
     )
-    print(f"Pixel area: {pixel_area.dims}, {pixel_area}")
+    # print(f"Pixel area: {pixel_area.dims}, {pixel_area}")
     resampled["pixel_area"] = pixel_area
 
-    # slope in fraction
-    da_slope = rxr.open_rasterio(slope_path)
+    ##
+    # Regions
+    ##
 
-    slope_too_steep = da_slope > max_slope
+    regions = ((geom, idx) for idx, geom in zip(shapes.index, shapes.geometry))
+    rasterized = rasterize(
+        shapes=regions,
+        out_shape=reference_raster.rio.shape,
+        transform=reference_raster.rio.transform(),
+        all_touched=True,
+        fill=np.nan,
+        dtype=np.float32,
+    )
+    resampled["regions"] = (("y", "x"), rasterized)
 
+    # Slope
+    da_slope = rxr.open_rasterio(slope_path, masked=True) / 100
+    print(f"Slope resolution: {da_slope.rio.resolution()}")
     resampled["slope"] = da_slope.astype(float).rio.reproject_match(
         reference_raster, resampling=Resampling.average
     )
 
-    resampled["slope_too_steep"] = slope_too_steep.astype(float).rio.reproject_match(
-        reference_raster, resampling=Resampling.average
-    )
+    # ds_slope = xr.open_dataset(slope_path)
+    # for slope_class in ds_slope.data_vars:
+    #     resampled[f"slope_{slope_class}"] = ds_slope.astype(float).rio.reproject_match(
+    #         reference_raster, resampling=Resampling.average
+    #     )
+
+    # resampled["slope_too_steep"] = slope_too_steep.astype(float).rio.reproject_match(
+    #     reference_raster, resampling=Resampling.average
+    # )
 
     ##
     # Land cover
     ##
-    suitable_land_cover_types = yaml.safe_load(suitable_land_cover_types)
-    land_cover = ds_land_cover = rxr.open_rasterio(land_cover_path)
-    ds_land_cover = get_suitable_land_cover_type(
-        land_cover, suitable_land_cover_types.keys()
-    )
+    suitable_land_cover_types = sorted(list(set(CoverType.values())))
+    ds_land_cover = rxr.open_rasterio(land_cover_path)
+    print(f"Land cover resolution: {ds_land_cover.rio.resolution()}")
+    land_cover = get_suitable_land_cover_type(ds_land_cover, suitable_land_cover_types)
 
-    # land cover in fraction
-    for land_type, value in suitable_land_cover_types.items():
-        skip = []
-        if value == 0:
-            skip.append(land_type)  # skip land cover types with 0 weight
-        else:
-            resampled[land_type] = ds_land_cover[land_type].rio.reproject_match(
-                reference_raster, resampling=Resampling.average
-            )
+    for land_type in suitable_land_cover_types:
+        # skip = []
+        # if value == 0:
+        #     skip.append(land_type)  # skip land cover types with 0 weight
+        # else:
+        resampled[f"landcover_{land_type}"] = land_cover[land_type].rio.reproject_match(
+            reference_raster, resampling=Resampling.average
+        )
 
-    print(f"Skip the land cover types not used in this tech: {skip}")
+    # print(f"Skip the land cover types not used in this tech: {skip}")
 
-    # settlement in sum of area of built-up surface (m2)
+    ##
+    # Settlement in sum of area of built-up surface (m2)
+    ##
     ds_settlement = rxr.open_rasterio(settlement_path)
+    print(f"Settlement resolution: {ds_settlement.rio.resolution()}")
     ds_settlement.rio.write_crs("EPSG:4326", inplace=True)
     resampled["settlement"] = ds_settlement.rio.reproject_match(
         reference_raster, resampling=Resampling.sum
     )
-    print("resampled settlement", resampled.dims, resampled.coords, resampled)
+    # print("resampled settlement", resampled.dims, resampled.coords, resampled)
+
+    ##
+    # Protected areas
+    ##
+    # FIXME: read the right layer(s) and deal with both poly and point layers
+    xmin, ymin, xmax, ymax = shapes.total_bounds
+    protected_areas = gpd.read_file(protected_area_path)
+    print(f"Protected areas: {len(protected_areas)}")
+    protected_areas = protected_areas.cx[xmin:xmax, ymin:ymax]
+    print(f"Protected areas after applying total_bounds: {len(protected_areas)}")
+
+    resampled["protected"] = reference_raster.fillna(1).rio.clip(
+        protected_areas.geometry, protected_areas.crs
+    )
 
     resampled.to_netcdf(output_path)
 

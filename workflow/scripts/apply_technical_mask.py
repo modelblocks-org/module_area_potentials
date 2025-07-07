@@ -6,11 +6,13 @@ import yaml
 @click.command()
 @click.argument("resampled_path", type=str)
 @click.argument("suitable_land_cover_types", type=str)
+@click.argument("max_slope", type=float)
 @click.argument("max_settlement", type=float)
 @click.argument("output_path", type=str)
 def apply_technical_mask(
     resampled_path,
     suitable_land_cover_types,
+    max_slope,
     max_settlement,
     output_path,
 ):
@@ -26,8 +28,12 @@ def apply_technical_mask(
     # settlement <= max_settlement
     suitable_land_cover_types = yaml.safe_load(suitable_land_cover_types)
 
+    ds_resampled["slope_too_steep"] = ds_resampled["slope"] > max_slope
+
     land_cover_types = [
-        type for type, value in suitable_land_cover_types.items() if value != 0
+        f"landcover_{type}"
+        for type, value in suitable_land_cover_types.items()
+        if value != 0
     ]
     land_cover_mask = (
         ds_resampled[land_cover_types].to_array().sum(dim="variable") >= 0.5
