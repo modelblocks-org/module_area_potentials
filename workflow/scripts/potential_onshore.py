@@ -38,6 +38,7 @@ def get_area_potential_onshore(
 
     eligible_fraction = eligible_fraction.where(ds_masked["protected"] != 1)
 
+    # FIXME: is this necessary if the inputs are already in EPSG:4326?
     eligible_fraction.rio.write_crs("EPSG:4326", inplace=True)
 
     # remove negative values and values greater than 1
@@ -50,6 +51,7 @@ def get_area_potential_onshore(
     ds_area_potential = ds_area_potential.rio.clip(
         shapes.geometry, shapes.crs, invert=False
     )
+    ds_area_potential.name = "area_potential"
     ds_area_potential.to_netcdf(output_path)
 
     plot = ds_area_potential.plot()
