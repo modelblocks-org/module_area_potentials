@@ -4,10 +4,7 @@ wildcard_constraints:
 
 rule resample_same_resolution:
     message:
-        "Resample inputs (with land cover subset to suitable types) to the requested projection and resolution.",
-    params:
-        projection=config["specs"]["projection"],
-        resolution=config["specs"]["resolution"],
+        "Resample inputs to the projection and resolution of the land cover data, while aggregating land cover types.",
     input:
         script=workflow.source_path("../scripts/resample.py"),
         shapes="resources/user/shapes.parquet",
@@ -26,7 +23,6 @@ rule resample_same_resolution:
     shell:
         """
         python "{input.script}" \
-        "{params.projection}" "{params.resolution}" \
         "{input.shapes}" "{input.land_cover_path}" "{input.slope_path}" "{input.settlement_path}" "{input.protected_area_path}" \
         "{output.resampled_input}" "{output.plot}"
         """
@@ -80,8 +76,6 @@ rule area_potential_offshore:
     message:
         "Get area potential for the tech {wildcards.tech_offshore}"
     params:
-        projection=config["specs"]["projection"],
-        resolution=config["specs"]["resolution"],
         water_depth=lambda wildcards: config["techs_offshore"][f"{wildcards.tech_offshore}"]["water_depth"],
         weight=lambda wildcards: config["techs_offshore"][f"{wildcards.tech_offshore}"]["weight"],
     input:
@@ -101,7 +95,7 @@ rule area_potential_offshore:
         "../envs/default.yaml"
     shell:
         """
-        python "{input.script}" "{input.shapes}" "{params.projection}" "{params.resolution}" \
+        python "{input.script}" "{input.shapes}" \
         "{input.bathymetry_path}" "{params.water_depth}" "{input.resampled_input_path}" "{params.weight}" "{output.area_potential}" "{output.plot}" 2> "{log}"
         """
 
@@ -110,6 +104,8 @@ rule area_potential_report:
     message:
         "Generate an overview report of the area potential for all techs.",
     input:
+        shapes="resources/user/shapes.parquet",
+        resampled_path=rules.resample_same_resolution.output.resampled_input,
         area_potentials=expand(
             "results/area_potential_{tech}.nc",
             tech=config["techs_offshore"].keys(),
