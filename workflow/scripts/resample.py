@@ -12,7 +12,6 @@ from rasterio.features import rasterize
 # LAND COVER
 # Original classification categories taken from GlobCover 2009 land cover.
 # From Troendle et al. (2019) https://github.com/timtroendle/possibility-for-electricity-autarky
-# suitable land cover types are defined in config.yaml, as 1, other types are 0
 
 
 GlobCover = {
@@ -139,33 +138,36 @@ def determine_pixel_areas(raster_input):
     return pixel_area_da
 
 
+def _rasterize_regions(shapes, reference_raster):
+    regions = [(geom, idx) for idx, geom in zip(shapes.index, shapes.geometry)]
+    return rasterize(
+        shapes=regions,
+        out_shape=reference_raster.rio.shape,
+        transform=reference_raster.rio.transform(),
+        fill=np.nan,
+        dtype=np.float32,
+    )
+
+
 @click.command()
-# @click.argument("projection", type=str)
-# @click.argument("resolution", type=float)
 @click.argument("shapes_path", type=str)
 @click.argument("land_cover_path", type=str)
 @click.argument("slope_path", type=str)
 @click.argument("settlement_path", type=str)
+@click.argument("bathymetry_path", type=str)
 @click.argument("protected_area_path", type=str)
 @click.argument("output_path", type=str)
 @click.argument("plot_path", type=str)
 def get_same_shape_and_resolution(
     shapes_path,
-    # projection,
-    # resolution,
     land_cover_path,
     slope_path,
     settlement_path,
+    bathymetry_path,
     protected_area_path,
     output_path,
     plot_path,
 ):
-    """Resample and crop the raster_input.
-
-    Goal is to have the same bounds, projection, and resolution as the reference_raster:
-    reproject_match ensures all rasters have the same bounds
-    (minlon, minlat, maxlon, maxlat)
-    """
     shapes = gpd.read_parquet(shapes_path)
     print(f"Number of shapes in input data: {len(shapes)}")
 
@@ -202,16 +204,11 @@ def get_same_shape_and_resolution(
     # Regions
     ##
 
-    regions = ((geom, idx) for idx, geom in zip(shapes.index, shapes.geometry))
-    rasterized = rasterize(
-        shapes=regions,
-        out_shape=reference_raster.rio.shape,
-        transform=reference_raster.rio.transform(),
-        all_touched=True,
-        fill=np.nan,
-        dtype=np.float32,
+
+    resampled["regions"] = (
+        ("y", "x"),
+        _rasterize_regions(shapes, reference_raster),
     )
-    resampled["regions"] = (("y", "x"), rasterized)
 
     ##
     # Slope
@@ -233,6 +230,16 @@ def get_same_shape_and_resolution(
     )
     # get fraction of settlement (built-up surface) compared to pixel area, both in m2
     resampled["settlement"] = resampled["settlement"] / resampled["pixel_area"]
+
+    ##
+    # Bathymetry
+    ##
+
+    ds_bathymetry = rxr.open_rasterio(bathymetry_path)
+    print(f"Bathymetry resolution: {ds_bathymetry.rio.resolution()}")
+    resampled["bathymetry"] = ds_bathymetry.rio.reproject_match(
+        reference_raster, resampling=Resampling.average
+    )
 
     ##
     # Protected areas

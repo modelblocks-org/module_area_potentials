@@ -10,7 +10,7 @@ rule download_cutout_slope:
     output:
         path="resources/cutout/slope.tif",
     wrapper:
-        "https://github.com/irm-codebase/snakemake-wrappers/raw/rasterio-tiff-clipping/geo/rasterio/clip-geotiff"
+        "v7.2.0/geo/rasterio/clip-geotiff"
 
 rule download_cutout_bathymetry:
     message:
@@ -22,7 +22,7 @@ rule download_cutout_bathymetry:
     output:
         path="resources/cutout/bathymetry.tif",
     wrapper:
-        "https://github.com/irm-codebase/snakemake-wrappers/raw/rasterio-tiff-clipping/geo/rasterio/clip-geotiff"
+        "v7.2.0/geo/rasterio/clip-geotiff"
 
 rule download_wdpa:
     message:

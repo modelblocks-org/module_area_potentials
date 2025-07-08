@@ -5,8 +5,12 @@ resources:
     # Links for automatically downloaded files
     ##
     # Slope
-    slope: "https://s3.opengeohub.org/global/dtm/v3/slope.in.degree_edtm_m_60m_s_20000101_20221231_go_epsg.4326_v20241230.tif"
-    # Bathymetry
+    # 60m version:
+    # slope: "https://s3.opengeohub.org/global/dtm/v3/slope.in.degree_edtm_m_60m_s_20000101_20221231_go_epsg.4326_v20241230.tif"
+    # 120m version:
+    # slope: "https://zenodo.org/records/14920379/files/slope.in.degree_edtm_m_120m_s_20000101_20221231_go_epsg.4326_v20241230.tif"
+    # 240m version:
+    slope: "https://zenodo.org/records/14920379/files/slope.in.degree_edtm_m_240m_s_20000101_20221231_go_epsg.4326_v20241230.tif"
     bathymetry: "https://zenodo.org/records/15741950/files/gebco_2024_sub_ice_cog.tif"
     # Land cover
     globcover: "https://due.esrin.esa.int/files/Globcover2009_V2.3_Global_.zip"
