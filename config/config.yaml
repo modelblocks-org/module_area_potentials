@@ -4,42 +4,73 @@
 #   A good option is "epsg:8857" (WGS 84 / Equal Earth Greenwich) for global coverage
 buffer_crs: "epsg:8857"
 
-# Technical criteria
-techs_onshore:
-  pv_open_field:
-    max_slope: 3
-    land_cover:
-      FARM: 0.1
-      FOREST: 0  # no PV open field in forest
-      OTHER: 0.2
-      URBAN: 0  # no PV open field in urban
-    settlement:
-      max_settlement: 0.01 # no PV open field in settlement
-      weight: -1
-  wind_onshore:
-    max_slope: 20
-    land_cover:
-      FARM: 0.2
-      FOREST: 0.05
-      OTHER: 0.3
-      URBAN: 0  # no wind onshore in urban
-    settlement:
-      max_settlement: 0.01
-      weight: -1
+techs:
   pv_rooftop:
-    max_slope: 90
-    land_cover:
-      FARM: 0
-      FOREST: 0
-      OTHER: 0
-      URBAN: 1
-    settlement:
-      max_settlement: 1
-      weight: 0.8
-
-techs_offshore:
+    initial_area: settlement_area
+    continuous_layers:
+      settlement_share:
+        min: 0.01
+        max: 1
+        share: 0.8
+    binary_layers:
+      regions_maritime: 0
+      regions_land: 1
+      protected: 0
+      # Include all land cover types; selection is done by settlement_share
+      landcover_FARM: 1
+      landcover_FOREST: 1
+      landcover_URBAN: 1
+      landcover_OTHER: 1
+      landcover_NOT_SUITABLE: 0
+      landcover_WATER: 0
+  pv_open_field:
+    initial_area: pixel_area
+    continuous_layers:
+      slope:
+        min: 0
+        max: 3
+      settlement_share:
+        min: 0
+        max: 0.01
+    binary_layers:
+      regions_maritime: 0
+      regions_land: 1
+      protected: 0
+      landcover_FARM: 0.1
+      landcover_FOREST: 0
+      landcover_URBAN: 0
+      landcover_OTHER: 0.2
+      landcover_NOT_SUITABLE: 0
+      landcover_WATER: 0
+  wind_onshore:
+    initial_area: pixel_area
+    continuous_layers:
+      slope:
+        min: 0
+        max: 20
+      settlement_share:
+        min: 0
+        max: 0.01
+    binary_layers:
+      regions_maritime: 0
+      regions_land: 1
+      protected: 0
+      landcover_FARM: 0.2
+      landcover_FOREST: 0.05
+      landcover_URBAN: 0
+      landcover_OTHER: 0.3
+      landcover_NOT_SUITABLE: 0
+      landcover_WATER: 0
   wind_offshore:
-    water_depth:
-      max: 0
-      min: -50
-    weight: 0.8
+    initial_area: pixel_area
+    continuous_layers:
+      bathymetry:
+        min: -50
+        max: 0
+        share: 0.8
+    binary_layers:
+      regions_land: 0
+      regions_maritime: 1
+      protected: 0
+    shapes_buffer:
+      land: 10000  # meters
