@@ -14,12 +14,7 @@ import yaml
 @click.argument("output_path", type=str)
 @click.argument("plot_path", type=str)
 def get_area_potential(
-    shapes_path,
-    resampled_path,
-    config,
-    buffer_crs,
-    output_path,
-    plot_path,
+    shapes_path, resampled_path, config, buffer_crs, output_path, plot_path
 ):
     shapes = gpd.read_parquet(shapes_path)
     ds = xr.open_dataset(resampled_path, decode_coords="all")

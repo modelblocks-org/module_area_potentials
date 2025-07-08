@@ -1,5 +1,6 @@
 """Rules to used to download automatic resource files."""
 
+
 rule download_cutout_slope:
     message:
         "Download slope data covering the bounds of the input shapefile."
@@ -11,6 +12,7 @@ rule download_cutout_slope:
         path="resources/automatic/cutout/{shape}/slope.tif",
     wrapper:
         "v7.2.0/geo/rasterio/clip-geotiff"
+
 
 rule download_cutout_bathymetry:
     message:
@@ -24,6 +26,7 @@ rule download_cutout_bathymetry:
     wrapper:
         "v7.2.0/geo/rasterio/clip-geotiff"
 
+
 rule download_globcover:
     message:
         "Download the GlobCover land cover data (~380 MB)."
@@ -35,6 +38,7 @@ rule download_globcover:
         "../envs/shell.yaml"
     shell:
         'curl -sSLo {output} "{params.url}"'
+
 
 rule unzip_globcover:
     message:
@@ -57,6 +61,7 @@ rule unzip_globcover:
         rm -R $temp_dir
         """
 
+
 rule download_ghsl:
     message:
         "Download the GHSL (Global Human Settlement Layer) built-up surface data."
@@ -68,6 +73,7 @@ rule download_ghsl:
         "../envs/shell.yaml"
     shell:
         'curl -sSLo {output} "{params.url}"'
+
 
 rule unzip_ghsl:
     message:
