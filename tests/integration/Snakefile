@@ -9,7 +9,7 @@ rule download_netherlands_shapes:
         "results/module_area_potentials/resources/user/shapes/NLD.parquet",
     shell:
         """
-        curl -sSLo {output} https://surfdrive.surf.nl/files/index.php/s/ey3RmiCbajp69oQ/download
+        curl -sSLo "{output}" "https://surfdrive.surf.nl/files/index.php/s/ey3RmiCbajp69oQ/download"
         """
 
 
@@ -23,8 +23,8 @@ rule download_netherlands_protected_areas:
         wdpa=directory("results/module_area_potentials/resources/user/wdpa.gdb"),
     shell:
         """
-        curl -sSLo {output.zipfile} https://surfdrive.surf.nl/files/index.php/s/msuXQETNbCWawDh/download
-        python {input.script} {output.zipfile} -t results/module_area_potentials/resources/user/
+        curl -sSLo "{output.zipfile}" "https://surfdrive.surf.nl/files/index.php/s/msuXQETNbCWawDh/download"
+        python "{input.script}" "{output.zipfile}" -t "results/module_area_potentials/resources/user/"
         """
 
 
