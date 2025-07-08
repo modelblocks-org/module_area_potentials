@@ -8,7 +8,7 @@ rule download_cutout_slope:
     input:
         vector="resources/user/shapes/{shape}.parquet",
     output:
-        path="resources/cutout/{shape}/slope.tif",
+        path="resources/automatic/cutout/{shape}/slope.tif",
     wrapper:
         "v7.2.0/geo/rasterio/clip-geotiff"
 
@@ -20,7 +20,7 @@ rule download_cutout_bathymetry:
     input:
         vector="resources/user/shapes/{shape}.parquet",
     output:
-        path="resources/cutout/{shape}/bathymetry.tif",
+        path="resources/automatic/cutout/{shape}/bathymetry.tif",
     wrapper:
         "v7.2.0/geo/rasterio/clip-geotiff"
 
@@ -30,7 +30,7 @@ rule download_wdpa:
     params:
         url=internal["resources"]["automatic"]["wdpa"],
     output:
-        "resources/automatic/wdpa.zip",
+        "resources/automatic/global/wdpa.zip",
     conda:
         "../envs/shell.yaml"
     shell:
@@ -44,7 +44,7 @@ rule unzip_wdpa:
     input:
         rules.download_wdpa.output,
     output:
-        directory("resources/automatic/wdpa.gdb"),
+        directory("resources/automatic/global/wdpa.gdb"),
     conda:
         "../envs/shell.yaml"
     shell:
@@ -61,7 +61,7 @@ rule download_globcover:
     params:
         url=internal["resources"]["automatic"]["globcover"],
     output:
-        "resources/automatic/globcover.zip",
+        "resources/automatic/global/globcover.zip",
     conda:
         "../envs/shell.yaml"
     shell:
@@ -75,7 +75,7 @@ rule unzip_globcover:
     input:
         rules.download_globcover.output,
     output:
-        "resources/automatic/globcover-landcover.tif",
+        "resources/automatic/global/globcover-landcover.tif",
     log:
         "logs/unzip_globcover.log",
     conda:
@@ -94,7 +94,7 @@ rule download_ghsl:
     params:
         url=internal["resources"]["automatic"]["ghsl"],
     output:
-        "resources/automatic/ghsl_built_s.zip",
+        "resources/automatic/global/ghsl_built_s.zip",
     conda:
         "../envs/shell.yaml"
     shell:
@@ -108,7 +108,7 @@ rule unzip_ghsl:
     input:
         rules.download_ghsl.output,
     output:
-        "resources/automatic/ghsl_built_s.tif",
+        "resources/automatic/global/ghsl_built_s.tif",
     conda:
         "../envs/shell.yaml"
     shell:

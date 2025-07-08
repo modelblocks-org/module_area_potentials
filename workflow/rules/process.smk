@@ -1,4 +1,4 @@
-rule resample_same_resolution:
+rule prepare_resampled_inputs:
     message:
         "Resample inputs for {wildcards.shape} to the projection and resolution of the land cover data, while aggregating land cover types.",
     input:
@@ -10,9 +10,9 @@ rule resample_same_resolution:
         bathymetry_path=rules.download_cutout_bathymetry.output,
         protected_area_path=rules.unzip_wdpa.output,
     output:
-        resampled_input="resources/{shape}/resampled_inputs.nc",
+        resampled_input="resources/automatic/{shape}.resampled_inputs.nc",
         plot=report(
-            "resources/{shape}/resampled_inputs.png",
+            "resources/automatic/{shape}.resampled_inputs.png",
             category="resampled_input",
         ),
     conda:
@@ -24,92 +24,40 @@ rule resample_same_resolution:
         "{output.resampled_input}" "{output.plot}"
         """
 
-rule technical_mask_onshore:
+rule area_potential:
     message:
-        "Get fraction satisfied all technical criteria: not too steep slope, suitable land cover, and not exceeding max_settlement for the tech {wildcards.tech_onshore} and shape {wildcards.shape}.",
+        "Compute area potential for the tech {wildcards.tech} and shapes {wildcards.shape}."
     params:
-        suitable_land_cover_types=lambda wildcards: config["techs_onshore"][f"{wildcards.tech_onshore}"]["land_cover"],
-        max_slope=lambda wildcards: config["techs_onshore"][f"{wildcards.tech_onshore}"]["max_slope"],
-        max_settlement=lambda wildcards: config["techs_onshore"][f"{wildcards.tech_onshore}"]["settlement"]["max_settlement"],
-    input:
-        script=workflow.source_path("../scripts/apply_technical_mask.py"),
-        resampled_path=rules.resample_same_resolution.output.resampled_input,
-    output:
-        technical_mask="resources/{shape}/technical_mask_{tech_onshore}.nc",
-        # plot=report(
-        #     "resources/{shape}/technical_mask_{tech_onshore}.pdf",
-        #     category="technical_mask",
-        # ),
-    conda:
-        "../envs/default.yaml"
-    shell:
-        """
-        python "{input.script}" "{input.resampled_path}" "{params.suitable_land_cover_types}" "{params.max_slope}" "{params.max_settlement}" "{output}"
-        """
-
-rule area_potential_onshore:
-    message:
-        "Compute onshore area potential for the tech {wildcards.tech_onshore} and shape {wildcards.shape}."
-    params:
-        technical_mask=lambda wildcards: config["techs_onshore"][f"{wildcards.tech_onshore}"]
-    input:
-        script=workflow.source_path("../scripts/potential_onshore.py"),
-        shapes="resources/user/shapes/{shape}.parquet",
-        masked_path=rules.technical_mask_onshore.output.technical_mask,
-    output:
-        area_potential="results/{shape}/area_potential_{tech_onshore}.tif",
-        plot=report(
-            "results/{shape}/area_potential_{tech_onshore}.png",
-            category="area_potential",
-        ),
-    conda:
-        "../envs/default.yaml"
-    shell:
-        """
-        python "{input.script}" "{input.masked_path}" "{params.technical_mask}" "{input.shapes}" "{output.area_potential}" "{output.plot}"
-        """
-
-rule area_potential_offshore:
-    message:
-        "Compute offshore area potential for the tech {wildcards.tech_offshore} and shape {wildcards.shape}."
-    params:
-        water_depth=lambda wildcards: config["techs_offshore"][f"{wildcards.tech_offshore}"]["water_depth"],
-        weight=lambda wildcards: config["techs_offshore"][f"{wildcards.tech_offshore}"]["weight"],
+        config=lambda wildcards: config["techs"][f"{wildcards.tech}"],
         buffer_crs=lambda wildcards: config["buffer_crs"],
     input:
-        script=workflow.source_path("../scripts/potential_offshore.py"),
+        script=workflow.source_path("../scripts/area_potential.py"),
         shapes="resources/user/shapes/{shape}.parquet",
-        resampled_input_path=rules.resample_same_resolution.output.resampled_input,
+        resampled_path=rules.prepare_resampled_inputs.output.resampled_input,
     output:
-        area_potential="results/{shape}/area_potential_{tech_offshore}.tif",
+        area_potential="results/{shape}/area_potential_{tech}.tif",
         plot=report(
-            "results/{shape}/area_potential_{tech_offshore}.png",
+            "results/{shape}/area_potential_{tech}.png",
             category="area_potential",
         ),
-    log:
-        "logs/area_potential_{shape}_{tech_offshore}.log",
     conda:
         "../envs/default.yaml"
     shell:
         """
-        python "{input.script}" "{input.shapes}" \
-        "{params.water_depth}" "{input.resampled_input_path}" "{params.weight}" "{params.buffer_crs}" "{output.area_potential}" "{output.plot}" 2> "{log}"
+        set -x
+        python "{input.script}" "{input.shapes}" "{input.resampled_path}" "{params.config}" "{params.buffer_crs}" "{output.area_potential}" "{output.plot}"
         """
-
 
 rule area_potential_report:
     message:
-        "Generate an overview report of the area potential for all techs in shape {wildcards.shape}.",
+        "Generate an overview report of the area potential for all techs in shapes {wildcards.shape}.",
     input:
         shapes="resources/user/shapes/{shape}.parquet",
-        resampled_path=rules.resample_same_resolution.output.resampled_input,
+        resampled_path=rules.prepare_resampled_inputs.output.resampled_input,
         area_potentials=expand(
             "results/{{shape}}/area_potential_{tech}.tif",
-            tech=config["techs_offshore"].keys(),
-        ) + expand(
-            "results/{{shape}}/area_potential_{tech}.tif",
-            tech=config["techs_onshore"].keys(),
-        ),
+            tech=config["techs"].keys(),
+        )
     output:
         csv="results/{shape}/area_potential_report.csv",
         html=report(

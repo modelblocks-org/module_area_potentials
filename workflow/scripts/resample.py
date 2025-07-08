@@ -62,8 +62,8 @@ CoverType = {
     "BARE_AREAS": "OTHER",
     "ARTIFICAL_SURFACES_AND_URBAN_AREAS": "URBAN",
     "WATER_BODIES": "WATER",
-    "PERMANENT_SNOW": "NA",
-    "NO_DATA": "NA",
+    "PERMANENT_SNOW": "NOT_SUITABLE",
+    "NO_DATA": "NOT_SUITABLE",
 }
 
 
@@ -126,7 +126,7 @@ def determine_pixel_areas(raster_input):
         crs: the coordinate reference system of the data (must be WGS84)
     """
     # the following is based on https://gis.stackexchange.com/a/288034/77760
-    # and assumes the data to be in EPSG:4326 (WGS84 is similar but with lat,lon instead of lon,lat)
+    # and assumes the data to be in EPSG:4326
     assert (
         raster_input.rio.crs.to_epsg() == 4326
     ), "raster_input does not have the projection EPSG:4326"
@@ -169,7 +169,6 @@ def get_same_shape_and_resolution(
     plot_path,
 ):
     shapes = gpd.read_parquet(shapes_path)
-    print(f"Number of shapes in input data: {len(shapes)}")
 
     ##
     # Land cover
@@ -188,9 +187,6 @@ def get_same_shape_and_resolution(
             reference_raster, resampling=Resampling.average
         )
 
-    # Drop the "band" dimension
-    resampled = resampled.squeeze().drop_vars("band")
-
     ##
     # Pixel area
     ##
@@ -204,11 +200,29 @@ def get_same_shape_and_resolution(
     # Regions
     ##
 
+    shapes_land = shapes[shapes["shape_class"] == "land"].index
+    shapes_maritime = shapes[shapes["shape_class"] == "maritime"].index
+    print(f"Number of regions in input data: {len(shapes)}")
+    print(f"Number of land regions: {len(shapes_land)}")
+    print(f"Number of maritime regions: {len(shapes_maritime)}")
 
     resampled["regions"] = (
         ("y", "x"),
         _rasterize_regions(shapes, reference_raster),
     )
+
+    mask_land = xr.DataArray(
+        np.isin(resampled["regions"], shapes_land),
+        dims=resampled["regions"].dims,
+        coords=resampled["regions"].coords,
+    )
+    mask_maritime = xr.DataArray(
+        np.isin(resampled["regions"], shapes_maritime),
+        dims=resampled["regions"].dims,
+        coords=resampled["regions"].coords,
+    )
+    resampled["regions_land"] = xr.where(mask_land, 1.0, np.nan)
+    resampled["regions_maritime"] = xr.where(mask_maritime, 1.0, np.nan)
 
     ##
     # Slope
@@ -224,18 +238,30 @@ def get_same_shape_and_resolution(
     ##
     ds_settlement = rxr.open_rasterio(settlement_path)
     print(f"Settlement resolution: {ds_settlement.rio.resolution()}")
-    ds_settlement.rio.write_crs("EPSG:4326", inplace=True)
-    resampled["settlement"] = ds_settlement.rio.reproject_match(
-        reference_raster, resampling=Resampling.sum
+
+    ds_settlement_pixel_area = (
+        determine_pixel_areas(ds_settlement)
+        .expand_dims({"x": ds_settlement.x})
+        .transpose("y", "x")
     )
-    # get fraction of settlement (built-up surface) compared to pixel area, both in m2
-    resampled["settlement"] = resampled["settlement"] / resampled["pixel_area"]
+
+    # Divide built-up surface (m2) by pixel area (m2) to get built-up surface density,
+    # then reproject to match the reference raster
+    resampled["settlement_share"] = (
+        ds_settlement / ds_settlement_pixel_area
+    ).rio.reproject_match(reference_raster, resampling=Resampling.average)
+
+    resampled["settlement_area"] = (
+        resampled["settlement_share"] * resampled["pixel_area"]
+    )
 
     ##
     # Bathymetry
     ##
 
     ds_bathymetry = rxr.open_rasterio(bathymetry_path)
+    # Only keep values <= 0, i.e., below sea level
+    ds_bathymetry = ds_bathymetry.where(ds_bathymetry <= 0, other=np.nan)
     print(f"Bathymetry resolution: {ds_bathymetry.rio.resolution()}")
     resampled["bathymetry"] = ds_bathymetry.rio.reproject_match(
         reference_raster, resampling=Resampling.average
@@ -256,9 +282,15 @@ def get_same_shape_and_resolution(
     )
     resampled["protected"] = resampled["protected"].fillna(0)
 
-    resampled.to_netcdf(output_path)
+    compression = {
+        var: {"zlib": True, "complevel": 1}
+        for var in resampled.data_vars
+        if var not in ["spatial_ref", "band"]
+    }
 
-    script_utils.plot_all_dataset_variables(resampled, savefig=plot_path)
+    resampled.to_netcdf(output_path, encoding=compression)
+
+    script_utils.plot_all_dataset_variables(resampled, ncols=3, savefig=plot_path)
 
 
 if __name__ == "__main__":

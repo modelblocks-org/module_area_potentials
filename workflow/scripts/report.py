@@ -7,11 +7,13 @@ import xarray as xr
 def report(shapes, resampled_path, area_potentials, csv_path, html_path):
     shapes = gpd.read_parquet(shapes)
     ds_inputs = xr.open_dataset(resampled_path, decode_coords="all")
+    # FIXME: this is a workaround for the CRS not being set correctly; not sure why
+    ds_inputs.rio.write_crs(ds_inputs.spatial_ref.attrs["crs_wkt"], inplace=True)
 
     # Collect the area potentials from the input files
     for area_potential in area_potentials:
         ds_inputs[area_potential] = rxr.open_rasterio(area_potential)
-    ds_inputs = ds_inputs.squeeze().drop_vars("band")
+    ds_inputs = ds_inputs.squeeze().drop_vars(["band", "spatial_ref"])
 
     # Group the area potentials by regions, sum them up, and collect the resulting Series
     # into a DataFrame, where each column corresponds to a technology's area potential,

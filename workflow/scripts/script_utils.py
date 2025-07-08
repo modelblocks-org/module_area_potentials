@@ -9,10 +9,9 @@ def plot_all_dataset_variables(ds, ncols=2, savefig=None):
     ds = ds.drop_vars(lambda x: [v for v, da in x.variables.items() if not da.ndim])
 
     vars_to_plot = list(ds.data_vars)
-
     nrows = math.ceil(len(vars_to_plot) / ncols)
 
-    fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=(12, 4 * nrows))
+    fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=(6 * ncols, 4 * nrows))
     axes = axes.flatten()
 
     for i, var in enumerate(vars_to_plot):
@@ -28,7 +27,6 @@ def plot_all_dataset_variables(ds, ncols=2, savefig=None):
     plt.tight_layout()
 
     if savefig:
-
         plt.savefig(savefig, bbox_inches="tight")
 
     return fig

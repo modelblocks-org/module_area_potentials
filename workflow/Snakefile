@@ -22,8 +22,7 @@ workflow.source_path("scripts/geo.py")
 
 wildcard_constraints:
     shape="[a-zA-Z0-9_-]+",
-    tech_onshore="|".join(config["techs_onshore"].keys()),
-    tech_offshore="|".join(config["techs_offshore"].keys()),
+    tech="|".join(config["techs"].keys()),
 
 # Add all your includes here.
 include: "rules/automatic.smk"

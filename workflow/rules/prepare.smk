@@ -7,7 +7,7 @@ rule cutout_landcover:
         shapes="resources/user/shapes/{shape}.parquet",
         landcover=rules.unzip_globcover.output,
     output:
-        "resources/cutout/{shape}/landcover.tif",
+        "resources/automatic/cutout/{shape}/landcover.tif",
     conda:
         "../envs/default.yaml"
     shell:
@@ -23,7 +23,7 @@ rule cutout_settlement:
         shapes="resources/user/shapes/{shape}.parquet",
         settlement=rules.unzip_ghsl.output,
     output:
-        "resources/cutout/{shape}/settlement.tif",
+        "resources/automatic/cutout/{shape}/settlement.tif",
     conda:
         "../envs/default.yaml"
     shell:
