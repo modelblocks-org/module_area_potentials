@@ -6,9 +6,9 @@ rule download_cutout_slope:
     params:
         cog_url=internal["resources"]["automatic"]["slope"],
     input:
-        vector="resources/user/shapes.parquet",
+        vector="resources/user/shapes/{shape}.parquet",
     output:
-        path="resources/cutout/slope.tif",
+        path="resources/cutout/{shape}/slope.tif",
     wrapper:
         "v7.2.0/geo/rasterio/clip-geotiff"
 
@@ -18,9 +18,9 @@ rule download_cutout_bathymetry:
     params:
         cog_url=internal["resources"]["automatic"]["bathymetry"],
     input:
-        vector="resources/user/shapes.parquet",
+        vector="resources/user/shapes/{shape}.parquet",
     output:
-        path="resources/cutout/bathymetry.tif",
+        path="resources/cutout/{shape}/bathymetry.tif",
     wrapper:
         "v7.2.0/geo/rasterio/clip-geotiff"
 
