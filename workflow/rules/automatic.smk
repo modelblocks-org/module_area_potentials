@@ -24,37 +24,6 @@ rule download_cutout_bathymetry:
     wrapper:
         "v7.2.0/geo/rasterio/clip-geotiff"
 
-rule download_wdpa:
-    message:
-        "Download the WDPA (World Database on Protected Areas) data (~1.5 GB)."
-    params:
-        url=internal["resources"]["automatic"]["wdpa"],
-    output:
-        "resources/automatic/global/wdpa.zip",
-    conda:
-        "../envs/shell.yaml"
-    shell:
-        'curl -sSLo {output} "{params.url}"'
-
-rule unzip_wdpa:
-    message:
-        "Unzip the WDPA (World Database on Protected Areas) data (~2.0 GB)."
-    params:
-        target=internal["resources"]["automatic"]["wdpa_gdb"],
-    input:
-        rules.download_wdpa.output,
-    output:
-        directory("resources/automatic/global/wdpa.gdb"),
-    conda:
-        "../envs/shell.yaml"
-    shell:
-        """
-        temp_dir=$(mktemp -d)
-        unzip {input} -d $temp_dir
-        mv $temp_dir/{params.target} {output}
-        rm -R $temp_dir
-        """
-
 rule download_globcover:
     message:
         "Download the GlobCover land cover data (~380 MB)."

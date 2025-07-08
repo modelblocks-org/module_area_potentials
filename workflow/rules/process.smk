@@ -8,7 +8,7 @@ rule prepare_resampled_inputs:
         slope_path=rules.download_cutout_slope.output,
         settlement_path=rules.cutout_settlement.output,
         bathymetry_path=rules.download_cutout_bathymetry.output,
-        protected_area_path=rules.unzip_wdpa.output,
+        protected_area_path="resources/user/wdpa.gdb",
     output:
         resampled_input="resources/automatic/{shape}.resampled_inputs.nc",
         plot=report(
