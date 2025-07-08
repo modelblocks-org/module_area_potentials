@@ -16,13 +16,15 @@ rule download_netherlands_shapes:
 rule download_netherlands_protected_areas:
     message:
         "Download and unzip a dummy drop-in dataset for Netherlands protected areas (not based on WDPA)."
+    input:
+        script=workflow.source_path("../../workflow/scripts/unzip_like.py"),
     output:
         zipfile="results/module_area_potentials/resources/user/wdpa.gdb.zip",
         wdpa=directory("results/module_area_potentials/resources/user/wdpa.gdb"),
     shell:
         """
         curl -sSLo {output.zipfile} https://surfdrive.surf.nl/files/index.php/s/msuXQETNbCWawDh/download
-        unzip {output.zipfile} -d results/module_area_potentials/resources/user/
+        python {input.script} {output.zipfile} -t results/module_area_potentials/resources/user/
         """
 
 
