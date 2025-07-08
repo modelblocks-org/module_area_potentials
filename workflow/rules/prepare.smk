@@ -15,7 +15,6 @@ rule cutout_landcover:
         rio clip --overwrite "{input.landcover}" "{output}" --bounds "$(fio info '{input.shapes}' --bounds)"
         """
 
-
 rule cutout_settlement:
     message:
         "Cut settlement data to the bounds of the input shapefile."
