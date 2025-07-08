@@ -1,4 +1,77 @@
 module_area_potentials:
-  dummy_text: >-
-    Configuration values (like this one) are also external to the module!
-    This gives users a lot of flexibility in how they apply your methodology to solve their particular needs.
+  # Options for buffering: either a string of the form "epsg:xxxx" or "UTM"/"utm"
+  # - "UTM": project each shape to the UTM zone of its centroid for buffering
+  # - "epsg:xxxx": use the specified CRS for all buffering
+  #   A good option is "epsg:8857" (WGS 84 / Equal Earth Greenwich) for global coverage
+  buffer_crs: "epsg:8857"
+
+  techs:
+    pv_rooftop:
+      initial_area: settlement_area
+      continuous_layers:
+        settlement_share:
+          min: 0.01
+          max: 1
+          share: 0.8
+      binary_layers:
+        regions_maritime: 0
+        regions_land: 1
+        protected: 0
+        # Include all land cover types; selection is done by settlement_share
+        landcover_FARM: 1
+        landcover_FOREST: 1
+        landcover_URBAN: 1
+        landcover_OTHER: 1
+        landcover_NOT_SUITABLE: 0
+        landcover_WATER: 0
+    pv_open_field:
+      initial_area: pixel_area
+      continuous_layers:
+        slope:
+          min: 0
+          max: 3
+        settlement_share:
+          min: 0
+          max: 0.01
+      binary_layers:
+        regions_maritime: 0
+        regions_land: 1
+        protected: 0
+        landcover_FARM: 0.1
+        landcover_FOREST: 0
+        landcover_URBAN: 0
+        landcover_OTHER: 0.2
+        landcover_NOT_SUITABLE: 0
+        landcover_WATER: 0
+    wind_onshore:
+      initial_area: pixel_area
+      continuous_layers:
+        slope:
+          min: 0
+          max: 20
+        settlement_share:
+          min: 0
+          max: 0.01
+      binary_layers:
+        regions_maritime: 0
+        regions_land: 1
+        protected: 0
+        landcover_FARM: 0.2
+        landcover_FOREST: 0.05
+        landcover_URBAN: 0
+        landcover_OTHER: 0.3
+        landcover_NOT_SUITABLE: 0
+        landcover_WATER: 0
+    wind_offshore:
+      initial_area: pixel_area
+      continuous_layers:
+        bathymetry:
+          min: -50
+          max: 0
+          share: 0.8
+      binary_layers:
+        regions_land: 0
+        regions_maritime: 1
+        protected: 0
+      shapes_buffer:
+        land: 10000  # meters
