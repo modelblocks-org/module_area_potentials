@@ -4,10 +4,10 @@ rule cutout_landcover:
     message:
         "Cut land cover data to the bounds of the input shapefile."
     input:
-        shapes="resources/user/shapes.parquet",
+        shapes="resources/user/shapes/{shape}.parquet",
         landcover=rules.unzip_globcover.output,
     output:
-        "resources/cutout/landcover.tif",
+        "resources/cutout/{shape}/landcover.tif",
     conda:
         "../envs/default.yaml"
     shell:
@@ -20,10 +20,10 @@ rule cutout_settlement:
     message:
         "Cut settlement data to the bounds of the input shapefile."
     input:
-        shapes="resources/user/shapes.parquet",
+        shapes="resources/user/shapes/{shape}.parquet",
         settlement=rules.unzip_ghsl.output,
     output:
-        "resources/cutout/settlement.tif",
+        "resources/cutout/{shape}/settlement.tif",
     conda:
         "../envs/default.yaml"
     shell:

@@ -20,6 +20,11 @@ with open(workflow.source_path("internal/settings.yaml"), "r") as f:
 workflow.source_path("scripts/script_utils.py")
 workflow.source_path("scripts/geo.py")
 
+wildcard_constraints:
+    shape="[a-zA-Z0-9_-]+",
+    tech_onshore="|".join(config["techs_onshore"].keys()),
+    tech_offshore="|".join(config["techs_offshore"].keys()),
+
 # Add all your includes here.
 include: "rules/automatic.smk"
 include: "rules/prepare.smk"
