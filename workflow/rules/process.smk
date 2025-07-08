@@ -11,11 +11,12 @@ rule resample_same_resolution:
         land_cover_path=rules.cutout_landcover.output,
         slope_path=rules.download_cutout_slope.output,
         settlement_path=rules.cutout_settlement.output,
+        bathymetry_path=rules.download_cutout_bathymetry.output,
         protected_area_path=rules.unzip_wdpa.output,
     output:
         resampled_input="resources/resampled_inputs.nc",
         plot=report(
-            "resources/resampled_inputs.pdf",
+            "resources/resampled_inputs.png",
             category="resampled_input",
         ),
     conda:
@@ -23,7 +24,7 @@ rule resample_same_resolution:
     shell:
         """
         python "{input.script}" \
-        "{input.shapes}" "{input.land_cover_path}" "{input.slope_path}" "{input.settlement_path}" "{input.protected_area_path}" \
+        "{input.shapes}" "{input.land_cover_path}" "{input.slope_path}" "{input.settlement_path}" "{input.bathymetry_path}" "{input.protected_area_path}" \
         "{output.resampled_input}" "{output.plot}"
         """
 
@@ -60,7 +61,7 @@ rule area_potential_onshore:
         shapes="resources/user/shapes.parquet",
         masked_path=rules.technical_mask_onshore.output.technical_mask,
     output:
-        area_potential="results/area_potential_{tech_onshore}.nc",
+        area_potential="results/area_potential_{tech_onshore}.tif",
         plot=report(
             "results/area_potential_{tech_onshore}.png",
             category="area_potential",
@@ -81,10 +82,9 @@ rule area_potential_offshore:
     input:
         script=workflow.source_path("../scripts/potential_offshore.py"),
         shapes="resources/user/shapes.parquet",
-        bathymetry_path=rules.download_cutout_bathymetry.output,
         resampled_input_path=rules.resample_same_resolution.output.resampled_input,
     output:
-        area_potential="results/area_potential_{tech_offshore}.nc",
+        area_potential="results/area_potential_{tech_offshore}.tif",
         plot=report(
             "results/area_potential_{tech_offshore}.png",
             category="area_potential",
@@ -96,7 +96,7 @@ rule area_potential_offshore:
     shell:
         """
         python "{input.script}" "{input.shapes}" \
-        "{input.bathymetry_path}" "{params.water_depth}" "{input.resampled_input_path}" "{params.weight}" "{output.area_potential}" "{output.plot}" 2> "{log}"
+        "{params.water_depth}" "{input.resampled_input_path}" "{params.weight}" "{output.area_potential}" "{output.plot}" 2> "{log}"
         """
 
 
@@ -107,10 +107,10 @@ rule area_potential_report:
         shapes="resources/user/shapes.parquet",
         resampled_path=rules.resample_same_resolution.output.resampled_input,
         area_potentials=expand(
-            "results/area_potential_{tech}.nc",
+            "results/area_potential_{tech}.tif",
             tech=config["techs_offshore"].keys(),
         ) + expand(
-            "results/area_potential_{tech}.nc",
+            "results/area_potential_{tech}.tif",
             tech=config["techs_onshore"].keys(),
         ),
     output:

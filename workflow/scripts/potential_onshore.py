@@ -52,7 +52,8 @@ def get_area_potential_onshore(
         shapes.geometry, shapes.crs, invert=False
     )
     ds_area_potential.name = "area_potential"
-    ds_area_potential.to_netcdf(output_path)
+    ds_area_potential = ds_area_potential.transpose("band", "y", "x")
+    ds_area_potential.rio.to_raster(output_path, driver="GTiff", compress="LZW")
 
     plot = ds_area_potential.plot()
     plt.savefig(plot_path, bbox_inches="tight")
