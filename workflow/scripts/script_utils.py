@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 
 
 def plot_all_dataset_variables(ds, ncols=2, savefig=None):
-
     # Drop dimensionless variables
     ds = ds.drop_vars(lambda x: [v for v, da in x.variables.items() if not da.ndim])
 

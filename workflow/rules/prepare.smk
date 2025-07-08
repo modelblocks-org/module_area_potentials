@@ -1,5 +1,6 @@
 """Cut out the datasets to bounds determined by the input shapefile."""
 
+
 rule cutout_landcover:
     message:
         "Cut land cover data to the bounds of the input shapefile."
@@ -14,6 +15,7 @@ rule cutout_landcover:
         """
         rio clip --overwrite "{input.landcover}" "{output}" --bounds "$(fio info '{input.shapes}' --bounds)"
         """
+
 
 rule cutout_settlement:
     message:

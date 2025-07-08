@@ -39,7 +39,7 @@ def report(shapes, resampled_path, area_potentials, csv_path, html_path):
     sums.name = "Total"
     df = pd.concat([df, sums.to_frame().T])
 
-    df.to_html(html_path, float_format=lambda x: f"{x/1e6:.2f}")
+    df.to_html(html_path, float_format=lambda x: f"{x / 1e6:.2f}")
 
 
 if __name__ == "__main__":

@@ -1,8 +1,10 @@
 # Emulate a user configuring the module.
 configfile: workflow.source_path("./test_config.yaml")
 
+
 rule download_netherlands_shapes:
-    message: "Download and unzip the Netherlands shapes."
+    message:
+        "Download and unzip the Netherlands shapes."
     output:
         "results/module_area_potentials/resources/user/shapes/NLD.parquet",
     shell:
@@ -10,8 +12,10 @@ rule download_netherlands_shapes:
         curl -sSLo {output} https://surfdrive.surf.nl/files/index.php/s/ey3RmiCbajp69oQ/download
         """
 
+
 rule download_netherlands_protected_areas:
-    message: "Download and unzip a dummy drop-in dataset for Netherlands protected areas (not based on WDPA)."
+    message:
+        "Download and unzip a dummy drop-in dataset for Netherlands protected areas (not based on WDPA)."
     output:
         zipfile="results/module_area_potentials/resources/user/wdpa.gdb.zip",
         wdpa=directory("results/module_area_potentials/resources/user/wdpa.gdb"),
@@ -21,20 +25,27 @@ rule download_netherlands_protected_areas:
         unzip {output.zipfile} -d results/module_area_potentials/resources/user/
         """
 
+
 # Import the module and configure it.
 # `snakefile:` specifies the module. It can use file paths and special github(...) / gitlab(...) markers
 # `prefix:` re-routes all input/output paths of the module, helping to avoid file conflicts.
 module module_area_potentials:
-    snakefile: "../../workflow/Snakefile"
-    config: config["module_area_potentials"]
-    prefix: "results/module_area_potentials/"
+    snakefile:
+        "../../workflow/Snakefile"
+    config:
+        config["module_area_potentials"]
+    prefix:
+        "results/module_area_potentials/"
+
 
 # rename all module rules with a prefix, to avoid naming conflicts.
 use rule * from module_area_potentials as module_area_potentials_*
 
+
 # Request something from the module
 rule all:
-    message: "Run the module for the Netherlands shapes."
+    message:
+        "Run the module for the Netherlands shapes."
     default_target: True
     input:
         "results/module_area_potentials/resources/user/shapes/NLD.parquet",
