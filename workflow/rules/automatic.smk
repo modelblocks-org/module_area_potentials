@@ -46,7 +46,8 @@ rule unzip_globcover:
     params:
         target_file=internal["resources"]["automatic"]["globcover_landcover_tif"],
     input:
-        rules.download_globcover.output,
+        script=workflow.source_path("../scripts/unzip_like.py"),
+        zipfile=rules.download_globcover.output,
     output:
         "resources/automatic/global/globcover-landcover.tif",
     log:
@@ -56,7 +57,7 @@ rule unzip_globcover:
     shell:
         """
         temp_dir=$(mktemp -d)
-        unzip -j {input} {params.target_file} -d $temp_dir
+        python {input.script} {input.zipfile} -f {params.target_file} -t $temp_dir
         mv $temp_dir/{params.target_file} {output}
         rm -R $temp_dir
         """
@@ -81,7 +82,8 @@ rule unzip_ghsl:
     params:
         target_file=internal["resources"]["automatic"]["ghsl_tif"],
     input:
-        rules.download_ghsl.output,
+        script=workflow.source_path("../scripts/unzip_like.py"),
+        zipfile=rules.download_ghsl.output,
     output:
         "resources/automatic/global/ghsl_built_s.tif",
     conda:
@@ -89,7 +91,7 @@ rule unzip_ghsl:
     shell:
         """
         temp_dir=$(mktemp -d)
-        unzip -j {input} {params.target_file} -d $temp_dir
+        python {input.script} {input.zipfile} -f {params.target_file} -t $temp_dir
         mv $temp_dir/{params.target_file} {output}
         rm -R $temp_dir
         """
