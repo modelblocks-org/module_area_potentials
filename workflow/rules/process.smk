@@ -75,6 +75,7 @@ rule area_potential_offshore:
     params:
         water_depth=lambda wildcards: config["techs_offshore"][f"{wildcards.tech_offshore}"]["water_depth"],
         weight=lambda wildcards: config["techs_offshore"][f"{wildcards.tech_offshore}"]["weight"],
+        buffer_crs=lambda wildcards: config["buffer_crs"],
     input:
         script=workflow.source_path("../scripts/potential_offshore.py"),
         shapes="resources/user/shapes/{shape}.parquet",
@@ -92,7 +93,7 @@ rule area_potential_offshore:
     shell:
         """
         python "{input.script}" "{input.shapes}" \
-        "{params.water_depth}" "{input.resampled_input_path}" "{params.weight}" "{output.area_potential}" "{output.plot}" 2> "{log}"
+        "{params.water_depth}" "{input.resampled_input_path}" "{params.weight}" "{params.buffer_crs}" "{output.area_potential}" "{output.plot}" 2> "{log}"
         """
 
 

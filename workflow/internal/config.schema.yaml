@@ -3,6 +3,9 @@ description: "Schema for user-provided configuration files."
 type: object
 additionalProperties: false
 properties:
+  buffer_crs:
+    type: string
+    description: "CRS for buffering shapes. Use 'UTM' for UTM zones or 'epsg:xxxx' for a specific CRS."
   specs:
     type: object
     properties:
