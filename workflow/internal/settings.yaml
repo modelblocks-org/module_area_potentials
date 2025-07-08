@@ -4,20 +4,9 @@ resources:
     ##
     # Links for automatically downloaded files
     ##
-    # Slope
-    # 60m version:
-    # slope: "https://s3.opengeohub.org/global/dtm/v3/slope.in.degree_edtm_m_60m_s_20000101_20221231_go_epsg.4326_v20241230.tif"
-    # 120m version:
-    # slope: "https://zenodo.org/records/14920379/files/slope.in.degree_edtm_m_120m_s_20000101_20221231_go_epsg.4326_v20241230.tif"
-    # 240m version:
     slope: "https://zenodo.org/records/14920379/files/slope.in.degree_edtm_m_240m_s_20000101_20221231_go_epsg.4326_v20241230.tif"
     bathymetry: "https://zenodo.org/records/15741950/files/gebco_2024_sub_ice_cog.tif"
-    # Land cover
     globcover: "https://due.esrin.esa.int/files/Globcover2009_V2.3_Global_.zip"
     globcover_landcover_tif: "GLOBCOVER_L4_200901_200912_V2.3.tif"
-    # Built-up areas
     ghsl: "https://jeodpp.jrc.ec.europa.eu/ftp/jrc-opendata/GHSL/GHS_BUILT_S_GLOBE_R2023A/GHS_BUILT_S_E2025_GLOBE_R2023A_4326_30ss/V1-0/GHS_BUILT_S_E2025_GLOBE_R2023A_4326_30ss_V1_0.zip"
     ghsl_tif: "GHS_BUILT_S_E2025_GLOBE_R2023A_4326_30ss_V1_0.tif"
-    # Protected areas
-    wdpa: "https://d1gam3xoknrgr2.cloudfront.net/current/WDPA_Jun2025_Public.zip"
-    wdpa_gdb: "WDPA_Jun2025_Public.gdb"
