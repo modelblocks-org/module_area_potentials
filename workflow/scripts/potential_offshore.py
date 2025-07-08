@@ -11,6 +11,7 @@ import yaml
 @click.argument("water_depth", type=str)
 @click.argument("resampled_input_path", type=str)
 @click.argument("weight", type=float)
+@click.argument("buffer_crs", type=str)
 @click.argument("output_path", type=str)
 @click.argument("plot_path", type=str)
 def get_area_potential_offshore(
@@ -18,6 +19,7 @@ def get_area_potential_offshore(
     water_depth,
     resampled_input_path,
     weight,
+    buffer_crs,
     output_path,
     plot_path,
 ):
@@ -49,9 +51,13 @@ def get_area_potential_offshore(
 
     # Buffer 10 km from country shape, no wind offshore too close to the coastline
     shapes_land = shapes[shapes["shape_class"] == "land"]
-    sea_buffer = geo.apply_utm_buffer(shapes_land, buffer_distance_m=10000).to_crs(
-        ds_inputs.rio.crs
-    )["geometry"]
+    if buffer_crs.lower() == "utm":
+        sea_buffer = geo.apply_utm_buffer(shapes_land, buffer_distance_m=10000).to_crs(
+            ds_inputs.rio.crs
+        )["geometry"]
+    else:
+        sea_buffer = shapes_land.to_crs(buffer_crs).buffer(10_000)
+
     buffer_geo = gpd.GeoDataFrame(geometry=sea_buffer).to_crs(ds_inputs.rio.crs)
     eligible_fraction = eligible_fraction.rio.clip(
         buffer_geo.geometry, buffer_geo.crs, invert=True

@@ -1,3 +1,9 @@
+# Options for buffering: either a string of the form "epsg:xxxx" or "UTM"/"utm"
+# - "UTM": project each shape to the UTM zone of its centroid for buffering
+# - "epsg:xxxx": use the specified CRS for all buffering
+#   A good option is "epsg:8857" (WGS 84 / Equal Earth Greenwich) for global coverage
+buffer_crs: "epsg:8857"
+
 # Technical criteria
 techs_onshore:
   pv_open_field:
