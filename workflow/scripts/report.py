@@ -1,3 +1,5 @@
+"""This script generates a report summarizing area potentials for different technologies."""
+
 import geopandas as gpd
 import pandas as pd
 import rioxarray as rxr
@@ -5,6 +7,7 @@ import xarray as xr
 
 
 def report(shapes, resampled_path, area_potentials, csv_path, html_path):
+    """Generate a report summarizing area potentials for different technologies."""
     shapes = gpd.read_parquet(shapes)
     ds_inputs = xr.open_dataset(resampled_path, decode_coords="all")
     # FIXME: this is a workaround for the CRS not being set correctly; not sure why

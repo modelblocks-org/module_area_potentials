@@ -1,3 +1,5 @@
+"""Emulates the `unzip` command across platforms."""
+
 import os
 import zipfile
 

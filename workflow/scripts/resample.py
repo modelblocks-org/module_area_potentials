@@ -1,3 +1,5 @@
+"""This script resamples various geospatial datasets to a common shape and resolution."""
+
 import math
 
 import click
@@ -68,6 +70,7 @@ CoverType = {
 
 
 def get_suitable_land_cover_type(ds_land_cover, suitable_land_cover_types):
+    """Convert raw GlobCover data to a dataset with suitable land cover types."""
     suitable_land_cover = xr.Dataset(coords=ds_land_cover.coords)
 
     # convert the input value to land cover type of interest
@@ -158,7 +161,7 @@ def _rasterize_regions(shapes, reference_raster):
 @click.argument("protected_area_path", type=str)
 @click.argument("output_path", type=str)
 @click.argument("plot_path", type=str)
-def get_same_shape_and_resolution(
+def resample_inputs(
     shapes_path,
     land_cover_path,
     slope_path,
@@ -168,6 +171,12 @@ def get_same_shape_and_resolution(
     output_path,
     plot_path,
 ):
+    """Resample various geospatial datasets to a common shape and resolution.
+
+    Results are saved to the specified output path in NetCDF format,
+    and a plot of the resampled data is saved to the specified plot path.
+
+    """
     shapes = gpd.read_parquet(shapes_path)
 
     ##
@@ -291,4 +300,4 @@ def get_same_shape_and_resolution(
 
 
 if __name__ == "__main__":
-    get_same_shape_and_resolution()
+    resample_inputs()

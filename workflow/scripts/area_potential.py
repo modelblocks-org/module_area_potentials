@@ -1,7 +1,8 @@
+"""This script calculates the area potential based on the provided configuration."""
+
 import click
 import geo
 import geopandas as gpd
-import matplotlib.pyplot as plt
 import xarray as xr
 import yaml
 
@@ -16,6 +17,20 @@ import yaml
 def get_area_potential(
     shapes_path, resampled_path, config, buffer_crs, output_path, plot_path
 ):
+    """Calculate the area potential based on the provided configuration.
+
+    Args:
+        shapes_path (str): Path to the input shapes in the parquet format.
+        resampled_path (str): Path to the resampled input data in the NetCDF format.
+        config (str): Configuration YAML string.
+        buffer_crs (str): Coordinate Reference System for buffering shapes.
+        output_path (str): Path to save the resulting area potential raster.
+        plot_path (str): Path to save the plot of the area potential.
+
+    Returns:
+        None
+
+    """
     shapes = gpd.read_parquet(shapes_path)
     ds = xr.open_dataset(resampled_path, decode_coords="all")
     # FIXME: this is a workaround for the CRS not being set correctly; not sure why
@@ -82,7 +97,7 @@ def get_area_potential(
     potential_da.rio.to_raster(output_path, driver="GTiff", compress="LZW")
 
     plot = potential_da.plot()
-    plt.savefig(plot_path, bbox_inches="tight")
+    plot.savefig(plot_path, bbox_inches="tight")
 
 
 if __name__ == "__main__":

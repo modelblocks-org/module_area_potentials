@@ -10,6 +10,8 @@ rule download_cutout_slope:
         vector="resources/user/shapes/{shape}.parquet",
     output:
         path="resources/automatic/cutout/{shape}/slope.tif",
+    log:
+        "logs/{shape}/download_cutout_slope.log",
     wrapper:
         "v7.2.0/geo/rasterio/clip-geotiff"
 
@@ -23,6 +25,8 @@ rule download_cutout_bathymetry:
         vector="resources/user/shapes/{shape}.parquet",
     output:
         path="resources/automatic/cutout/{shape}/bathymetry.tif",
+    log:
+        "logs/{shape}/download_cutout_bathymetry.log",
     wrapper:
         "v7.2.0/geo/rasterio/clip-geotiff"
 
@@ -34,6 +38,8 @@ rule download_globcover:
         url=internal["resources"]["automatic"]["globcover"],
     output:
         "resources/automatic/global/globcover.zip",
+    log:
+        "logs/download_globcover.log",
     conda:
         "../envs/shell.yaml"
     shell:
@@ -70,6 +76,8 @@ rule download_ghsl:
         url=internal["resources"]["automatic"]["ghsl"],
     output:
         "resources/automatic/global/ghsl_built_s.zip",
+    log:
+        "logs/download_ghsl.log",
     conda:
         "../envs/shell.yaml"
     shell:
@@ -86,6 +94,8 @@ rule unzip_ghsl:
         zipfile=rules.download_ghsl.output,
     output:
         "resources/automatic/global/ghsl_built_s.tif",
+    log:
+        "logs/unzip_ghsl.log",
     conda:
         "../envs/shell.yaml"
     shell:
