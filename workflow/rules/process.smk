@@ -15,13 +15,16 @@ rule prepare_resampled_inputs:
             "resources/automatic/{shape}.resampled_inputs.png",
             category="resampled_input",
         ),
+    log:
+        "logs/{shape}/prepare_resampled_inputs.log",
     conda:
         "../envs/default.yaml"
     shell:
         """
+        set -x
         python "{input.script}" \
         "{input.shapes}" "{input.land_cover_path}" "{input.slope_path}" "{input.settlement_path}" "{input.bathymetry_path}" "{input.protected_area_path}" \
-        "{output.resampled_input}" "{output.plot}"
+        "{output.resampled_input}" "{output.plot}" 2> "{log}"
         """
 
 
@@ -41,12 +44,14 @@ rule area_potential:
             "results/{shape}/area_potential_{tech}.png",
             category="area_potential",
         ),
+    log:
+        "logs/{shape}/area_potential_{tech}.log",
     conda:
         "../envs/default.yaml"
     shell:
         """
         set -x
-        python "{input.script}" "{input.shapes}" "{input.resampled_path}" "{params.config}" "{params.buffer_crs}" "{output.area_potential}" "{output.plot}"
+        python "{input.script}" "{input.shapes}" "{input.resampled_path}" "{params.config}" "{params.buffer_crs}" "{output.area_potential}" "{output.plot}" 2> "{log}"
         """
 
 
@@ -66,6 +71,8 @@ rule area_potential_report:
             "results/{shape}/area_potential_report.html",
             category="area_potential_report",
         ),
+    log:
+        "logs/{shape}/area_potential_report.log",
     conda:
         "../envs/default.yaml"
     script:

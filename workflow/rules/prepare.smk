@@ -9,6 +9,8 @@ rule cutout_landcover:
         landcover=rules.unzip_globcover.output,
     output:
         "resources/automatic/cutout/{shape}/landcover.tif",
+    log:
+        "logs/{shape}/cutout_landcover.log",
     conda:
         "../envs/default.yaml"
     shell:
@@ -25,6 +27,8 @@ rule cutout_settlement:
         settlement=rules.unzip_ghsl.output,
     output:
         "resources/automatic/cutout/{shape}/settlement.tif",
+    log:
+        "logs/{shape}/cutout_settlement.log",
     conda:
         "../envs/default.yaml"
     shell:

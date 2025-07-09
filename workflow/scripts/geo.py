@@ -1,3 +1,5 @@
+"""This module provides functions to buffer geometries using UTM projections."""
+
 import warnings
 
 import geopandas as gpd

@@ -1,9 +1,12 @@
+"""Utility functions."""
+
 import math
 
 import matplotlib.pyplot as plt
 
 
 def plot_all_dataset_variables(ds, ncols=2, savefig=None):
+    """Plot all variables in an xarray dataset on a grid of plots."""
     # Drop dimensionless variables
     ds = ds.drop_vars(lambda x: [v for v, da in x.variables.items() if not da.ndim])
 
