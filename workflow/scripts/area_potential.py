@@ -3,6 +3,7 @@
 import click
 import geo
 import geopandas as gpd
+import matplotlib.pyplot as plt
 import xarray as xr
 import yaml
 
@@ -96,8 +97,8 @@ def get_area_potential(
     potential_da = potential_da.transpose("band", "y", "x")
     potential_da.rio.to_raster(output_path, driver="GTiff", compress="LZW")
 
-    plot = potential_da.plot()
-    plot.savefig(plot_path, bbox_inches="tight")
+    potential_da.plot()
+    plt.savefig(plot_path, bbox_inches="tight")
 
 
 if __name__ == "__main__":
