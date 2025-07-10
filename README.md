@@ -52,4 +52,3 @@ snakemake --use-conda  # run the workflow!
     * License: "The GHSL has been produced by the EC JRC as open and free data. Reuse is authorised, provided the source is acknowledged."
 * [WDPA (World Database on Protected Areas)](https://www.protectedplanet.net/)
     * License: Non-commercial allowed. Citation: "UNEP-WCMC and IUCN (2025), Protected Planet: The World Database on Protected Areas (WDPA) and World Database on Other Effective Area-based Conservation Measures (WD-OECM) [Online], June 2025, Cambridge, UK: UNEP-WCMC and IUCN. Available at: www.protectedplanet.net."
-* Slope is derived from the GMTED2010 public-domain dataset and stored as unsigned 8-bit integers to save space, so we only have integer slope values.

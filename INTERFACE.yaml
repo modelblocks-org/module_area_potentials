@@ -1,20 +1,15 @@
 # Module Input-Output structure for automated doc. generation
 resources:
   user:
-    user_message.md: "Example file emulating external files requested from a user."
+    "shapes/{shape}.parquet": "Region geometries in parquet format. These should conform to the schema defined in https://github.com/calliope-project/module_geo_boundaries/blob/main/workflow/internal/shape.schema.yaml"
+    "wdpa.gdb": "WDPA protected areas database from https://www.protectedplanet.net/ in GeoDB format (choose 'File Geodatabase' when downloading)."
   automatic:
-    dummy_readme.md: "Example file emulating downloads determined by internal settings."
+    "{shape}.resampled_inputs.nc": "Resampled and rasterized input data layers for the regions, including land cover, slope, settlement, bathymetry, and protected areas."
+    "{shape}.resampled_inputs.png": "Visualization of the resampled input data for the regions."
 results:
-  combined_text.md: "Example file emulating module results."
-
-# Wildcard example:
-# resources:
-#   user:
-#     shapes_{resolution}.geojson: region geometries.
-#   automatic:
-#     technology_data.parquet: dataset with technology characteristics.
-# results:
-#   '{resolution}/tech_capacity.parquet': description of output data.
-#   '{resolution}/results_image.png': description of output image.
-# wildcards:
-#   resolution: description of the wildcard’s purpose.
+    "results/{shape}/area_potential_{tech}.tif": "Area potential GeoTIFF raster for the specified technology and region geometries."
+    "results/{shape}/area_potential_report.csv": "CSV summary report of area potential for all techs, for the given region geometries."
+    "results/{shape}/area_potential_report.html": "HTML summary report of area potential for all techs, for the given region geometries."
+wildcards:
+  shape: "Name of the shape to be processed, e.g., 'world', 'europe', 'MEX'."
+  tech: "Name of the technology, e.g., 'pv_rooftop' or 'wind_offshore'. Available technologies are defined in the module configuration."
