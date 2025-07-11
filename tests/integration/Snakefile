@@ -21,7 +21,7 @@ rule download_netherlands_protected_areas:
     message:
         "Download and unzip a dummy drop-in dataset for Netherlands protected areas (not based on WDPA)."
     output:
-        "results/integration_test/resources/user/wdpa.gdb.zip"
+        "results/integration_test/resources/user/wdpa.gdb.zip",
     log:
         "results/integration_test/logs/download_netherlands_protected_areas.log",
     conda:
@@ -30,6 +30,7 @@ rule download_netherlands_protected_areas:
         """
         curl -sSLo "{output}" "https://surfdrive.surf.nl/files/index.php/s/msuXQETNbCWawDh/download"
         """
+
 
 rule unzip_netherlands_protected_areas:
     message:
