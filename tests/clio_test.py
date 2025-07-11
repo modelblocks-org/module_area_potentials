@@ -40,7 +40,7 @@ def test_standard_file_existance(module_path, file):
 def test_snakemake_all_failure(module_path):
     """The snakemake 'all' rule should return an error by default."""
     process = subprocess.run(
-        "snakemake --cores 4", shell=True, cwd=module_path, capture_output=True
+        "snakemake --cores 1", shell=True, cwd=module_path, capture_output=True
     )
     assert "INVALID (missing locally)" in str(process.stderr)
 

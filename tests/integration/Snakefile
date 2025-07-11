@@ -20,19 +20,32 @@ rule download_netherlands_shapes:
 rule download_netherlands_protected_areas:
     message:
         "Download and unzip a dummy drop-in dataset for Netherlands protected areas (not based on WDPA)."
-    input:
-        script=workflow.source_path("../../workflow/scripts/unzip_like.py"),
     output:
-        zipfile="results/integration_test/resources/user/wdpa.gdb.zip",
-        wdpa=directory("results/integration_test/resources/user/wdpa.gdb"),
+        "results/integration_test/resources/user/wdpa.gdb.zip"
     log:
         "results/integration_test/logs/download_netherlands_protected_areas.log",
     conda:
         "../../workflow/envs/shell.yaml"
     shell:
         """
-        curl -sSLo "{output.zipfile}" "https://surfdrive.surf.nl/files/index.php/s/msuXQETNbCWawDh/download"
-        python "{input.script}" "{output.zipfile}" -t "results/integration_test/resources/user/" 2> "{log}"
+        curl -sSLo "{output}" "https://surfdrive.surf.nl/files/index.php/s/msuXQETNbCWawDh/download"
+        """
+
+rule unzip_netherlands_protected_areas:
+    message:
+        "Download and unzip a dummy drop-in dataset for Netherlands protected areas (not based on WDPA)."
+    input:
+        script=workflow.source_path("../../workflow/scripts/unzip_like.py"),
+        zipfile=rules.download_netherlands_protected_areas.output,
+    output:
+        directory("results/integration_test/resources/user/wdpa.gdb"),
+    log:
+        "results/integration_test/logs/unzip_netherlands_protected_areas.log",
+    conda:
+        "../../workflow/envs/shell.yaml"
+    shell:
+        """
+        python "{input.script}" "{input.zipfile}" -t "results/integration_test/resources/user/" 2> "{log}"
         """
 
 
