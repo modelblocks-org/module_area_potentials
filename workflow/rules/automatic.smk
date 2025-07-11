@@ -43,7 +43,9 @@ rule download_globcover:
     conda:
         "../envs/shell.yaml"
     shell:
-        'curl -sSLo {output} "{params.url}"'
+        """
+        curl -sSLo "{output}" "{params.url}"
+        """
 
 
 rule unzip_globcover:
@@ -62,10 +64,7 @@ rule unzip_globcover:
         "../envs/shell.yaml"
     shell:
         """
-        temp_dir=$(mktemp -d)
-        python {input.script} {input.zipfile} -f {params.target_file} -t $temp_dir
-        mv $temp_dir/{params.target_file} {output}
-        rm -R $temp_dir
+        python "{input.script}" "{input.zipfile}" -f "{params.target_file}" -o "{output}" 2> "{log}"
         """
 
 
@@ -81,7 +80,9 @@ rule download_ghsl:
     conda:
         "../envs/shell.yaml"
     shell:
-        'curl -sSLo {output} "{params.url}"'
+        """
+        curl -sSLo "{output}" "{params.url}"
+        """
 
 
 rule unzip_ghsl:
@@ -100,8 +101,5 @@ rule unzip_ghsl:
         "../envs/shell.yaml"
     shell:
         """
-        temp_dir=$(mktemp -d)
-        python {input.script} {input.zipfile} -f {params.target_file} -t $temp_dir
-        mv $temp_dir/{params.target_file} {output}
-        rm -R $temp_dir
+        python "{input.script}" "{input.zipfile}" -f "{params.target_file}" -o "{output}" 2> "{log}"
         """
