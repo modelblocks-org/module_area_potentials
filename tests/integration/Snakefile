@@ -19,7 +19,7 @@ rule download_netherlands_shapes:
 
 rule download_netherlands_protected_areas:
     message:
-        "Download and unzip a dummy drop-in dataset for Netherlands protected areas (not based on WDPA)."
+        "Download a dummy drop-in dataset for Netherlands protected areas (not based on WDPA)."
     output:
         "results/integration_test/resources/user/wdpa.gdb.zip",
     log:
@@ -34,7 +34,7 @@ rule download_netherlands_protected_areas:
 
 rule unzip_netherlands_protected_areas:
     message:
-        "Download and unzip a dummy drop-in dataset for Netherlands protected areas (not based on WDPA)."
+        "Download protected areas data."
     input:
         script=workflow.source_path("../../workflow/scripts/unzip_like.py"),
         zipfile=rules.download_netherlands_protected_areas.output,
