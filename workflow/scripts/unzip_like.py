@@ -16,11 +16,7 @@ import click
     default=".",
     help="Target directory to extract to.",
 )
-@click.option(
-    "--file",
-    "-f",
-    help="Specific file inside the zip to extract.",
-)
+@click.option("--file", "-f", help="Specific file inside the zip to extract.")
 @click.option(
     "--output",
     "-o",
