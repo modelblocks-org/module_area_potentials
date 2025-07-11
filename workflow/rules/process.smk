@@ -21,7 +21,6 @@ rule prepare_resampled_inputs:
         "../envs/default.yaml"
     shell:
         """
-        set -x
         python "{input.script}" \
         "{input.shapes}" "{input.land_cover_path}" "{input.slope_path}" "{input.settlement_path}" "{input.bathymetry_path}" "{input.protected_area_path}" \
         "{output.resampled_input}" "{output.plot}" 2> "{log}"
@@ -50,7 +49,6 @@ rule area_potential:
         "../envs/default.yaml"
     shell:
         """
-        set -x
         python "{input.script}" "{input.shapes}" "{input.resampled_path}" "{params.config}" "{params.buffer_crs}" "{output.area_potential}" "{output.plot}" 2> "{log}"
         """
 
