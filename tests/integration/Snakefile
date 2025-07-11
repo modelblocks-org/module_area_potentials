@@ -7,6 +7,10 @@ rule download_netherlands_shapes:
         "Download and unzip the Netherlands shapes."
     output:
         "results/integration_test/resources/user/shapes/NLD.parquet",
+    log:
+        "results/integration_test/logs/download_netherlands_shapes.log",
+    conda:
+        "../../workflow/envs/shell.yaml"
     shell:
         """
         curl -sSLo "{output}" "https://surfdrive.surf.nl/files/index.php/s/ey3RmiCbajp69oQ/download"
@@ -21,10 +25,14 @@ rule download_netherlands_protected_areas:
     output:
         zipfile="results/integration_test/resources/user/wdpa.gdb.zip",
         wdpa=directory("results/integration_test/resources/user/wdpa.gdb"),
+    log:
+        "results/integration_test/logs/download_netherlands_protected_areas.log",
+    conda:
+        "../../workflow/envs/shell.yaml"
     shell:
         """
         curl -sSLo "{output.zipfile}" "https://surfdrive.surf.nl/files/index.php/s/msuXQETNbCWawDh/download"
-        python "{input.script}" "{output.zipfile}" -t "results/integration_test/resources/user/"
+        python "{input.script}" "{output.zipfile}" -t "results/integration_test/resources/user/" 2> "{log}"
         """
 
 
