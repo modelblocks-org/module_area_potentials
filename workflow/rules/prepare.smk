@@ -5,6 +5,7 @@ rule cutout_landcover:
     message:
         "Cut land cover data to the bounds of the input shapefile."
     input:
+        script=workflow.source_path("../scripts/clip_raster.py"),
         shapes="resources/user/shapes/{shape}.parquet",
         landcover=rules.unzip_globcover.output,
     output:
@@ -15,7 +16,7 @@ rule cutout_landcover:
         "../envs/default.yaml"
     shell:
         """
-        rio clip --overwrite "{input.landcover}" "{output}" --bounds "$(fio info '{input.shapes}' --bounds)"
+        python "{input.script}" "{input.landcover}" "{input.shapes}" "{output}" 2> "{log}"
         """
 
 
@@ -23,6 +24,7 @@ rule cutout_settlement:
     message:
         "Cut settlement data to the bounds of the input shapefile."
     input:
+        script=workflow.source_path("../scripts/clip_raster.py"),
         shapes="resources/user/shapes/{shape}.parquet",
         settlement=rules.unzip_ghsl.output,
     output:
@@ -33,5 +35,5 @@ rule cutout_settlement:
         "../envs/default.yaml"
     shell:
         """
-        rio clip --overwrite "{input.settlement}" "{output}" --bounds "$(fio info '{input.shapes}' --bounds)"
+        python "{input.script}" "{input.settlement}" "{input.shapes}" "{output}" 2> "{log}"
         """
