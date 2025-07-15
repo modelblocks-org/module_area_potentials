@@ -107,9 +107,9 @@ def determine_pixel_areas(raster_input):
     """
     # the following is based on https://gis.stackexchange.com/a/288034/77760
     # and assumes the data to be in EPSG:4326
-    assert (
-        raster_input.rio.crs.to_epsg() == 4326
-    ), "raster_input does not have the projection EPSG:4326"
+    assert raster_input.rio.crs.to_epsg() == 4326, (
+        "raster_input does not have the projection EPSG:4326"
+    )
     resolution = raster_input.rio.resolution()[0]  # resolution in degrees
     varea_of_pixel = np.vectorize(lambda lat: _area_of_pixel(resolution, lat))
     pixel_area = varea_of_pixel(raster_input.y) * 1000**2  # convert to m^2
