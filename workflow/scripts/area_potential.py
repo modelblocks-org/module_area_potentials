@@ -95,6 +95,7 @@ def get_area_potential(
 
     potential_da.name = "area_potential"
     potential_da = potential_da.transpose("band", "y", "x")
+    potential_da.rio.write_crs(ds.rio.crs, inplace=True)
     potential_da.rio.to_raster(output_path, driver="GTiff", compress="LZW")
 
     potential_da.plot()
