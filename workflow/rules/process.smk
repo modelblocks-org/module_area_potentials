@@ -1,6 +1,8 @@
 rule prepare_resampled_inputs:
     message:
         "Resample inputs for {wildcards.shape} to the projection and resolution of the land cover data, while aggregating land cover types."
+    params:
+        land_cover_types_yaml_string=config["land_cover_types"],
     input:
         script=workflow.source_path("../scripts/resample.py"),
         shapes="resources/user/shapes/{shape}.parquet",
@@ -23,6 +25,7 @@ rule prepare_resampled_inputs:
         """
         python "{input.script}" \
         "{input.shapes}" "{input.land_cover_path}" "{input.slope_path}" "{input.settlement_path}" "{input.bathymetry_path}" "{input.protected_area_path}" \
+        "{params.land_cover_types_yaml_string}" \
         "{output.resampled_input}" "{output.plot}" 2> "{log}"
         """
 
