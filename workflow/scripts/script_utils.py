@@ -29,6 +29,6 @@ def plot_all_dataset_variables(ds, ncols=2, savefig=None):
     plt.tight_layout()
 
     if savefig:
-        plt.savefig(savefig, bbox_inches="tight")
+        plt.savefig(savefig, dpi=300, bbox_inches="tight")
 
     return fig
