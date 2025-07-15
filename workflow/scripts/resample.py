@@ -8,6 +8,7 @@ import numpy as np
 import rioxarray as rxr
 import script_utils
 import xarray as xr
+import yaml
 from rasterio.enums import Resampling
 from rasterio.features import rasterize
 
@@ -16,7 +17,7 @@ from rasterio.features import rasterize
 # From Troendle et al. (2019) https://github.com/timtroendle/possibility-for-electricity-autarky
 
 
-GlobCover = {
+GLOBCOVER_TYPES = {
     11: "POST_FLOODING",
     14: "RAINFED_CROPLANDS",
     20: "MOSAIC_CROPLAND",
@@ -32,57 +33,33 @@ GlobCover = {
     130: "CLOSED_TO_OPEN_SHRUBLAND",
     140: "CLOSED_TO_OPEN_HERBS",
     150: "SPARSE_VEGETATION",
-    160: "CLOSED_TO_OPEN_REGULARLY_FLOODED_FOREST",  # doesn't exist in Europe
-    170: "CLOSED_REGULARLY_FLOODED_FOREST",  # doesn't exist in Europe
-    180: "CLOSED_TO_OPEN_REGULARLY_FLOODED_GRASSLAND",  # roughly 2.3% of land in Europe
-    190: "ARTIFICAL_SURFACES_AND_URBAN_AREAS",
+    160: "CLOSED_TO_OPEN_REGULARLY_FLOODED_FOREST",
+    170: "CLOSED_REGULARLY_FLOODED_FOREST",
+    180: "CLOSED_TO_OPEN_REGULARLY_FLOODED_GRASSLAND",
+    190: "ARTIFICIAL_SURFACES_AND_URBAN_AREAS",
     200: "BARE_AREAS",
     210: "WATER_BODIES",
     220: "PERMANENT_SNOW",
     230: "NO_DATA",
 }
 
-CoverType = {
-    "POST_FLOODING": "FARM",
-    "RAINFED_CROPLANDS": "FARM",
-    "MOSAIC_CROPLAND": "FARM",
-    "MOSAIC_VEGETATION": "FARM",
-    "CLOSED_TO_OPEN_BROADLEAVED_FOREST": "FOREST",
-    "CLOSED_BROADLEAVED_FOREST": "FOREST",
-    "OPEN_BROADLEAVED_FOREST": "FOREST",
-    "CLOSED_NEEDLELEAVED_FOREST": "FOREST",
-    "OPEN_NEEDLELEAVED_FOREST": "FOREST",
-    "CLOSED_TO_OPEN_MIXED_FOREST": "FOREST",
-    "MOSAIC_FOREST": "FOREST",
-    "CLOSED_TO_OPEN_REGULARLY_FLOODED_FOREST": "FOREST",
-    "CLOSED_REGULARLY_FLOODED_FOREST": "FOREST",
-    "MOSAIC_GRASSLAND": "OTHER",  # vegetation
-    "CLOSED_TO_OPEN_SHRUBLAND": "OTHER",  # vegetation
-    "CLOSED_TO_OPEN_HERBS": "OTHER",  # vegetation
-    "SPARSE_VEGETATION": "OTHER",  # vegetation
-    "CLOSED_TO_OPEN_REGULARLY_FLOODED_GRASSLAND": "OTHER",  # vegetation
-    "BARE_AREAS": "OTHER",
-    "ARTIFICAL_SURFACES_AND_URBAN_AREAS": "URBAN",
-    "WATER_BODIES": "WATER",
-    "PERMANENT_SNOW": "NOT_SUITABLE",
-    "NO_DATA": "NOT_SUITABLE",
-}
 
-
-def get_suitable_land_cover_type(ds_land_cover, suitable_land_cover_types):
+def aggregate_land_cover_types(ds_land_cover, land_cover_types):
     """Convert raw GlobCover data to a dataset with suitable land cover types."""
     suitable_land_cover = xr.Dataset(coords=ds_land_cover.coords)
 
     # convert the input value to land cover type of interest
     for value in np.unique(ds_land_cover.data):
-        if value in GlobCover:
+        if value in GLOBCOVER_TYPES:
             ds_land_cover = ds_land_cover.where(
-                ds_land_cover != value, other=CoverType[GlobCover[value]], drop=False
+                ds_land_cover != value,
+                other=land_cover_types[GLOBCOVER_TYPES[value]],
+                drop=False,
             )
 
     # check if each pixel is in the list of suitable land cover types
-    for type in suitable_land_cover_types:
-        suitable_land_cover[type] = (ds_land_cover == type).astype(float)
+    for type_ in sorted(list(set(land_cover_types.values()))):
+        suitable_land_cover[type_] = (ds_land_cover == type_).astype(np.byte)
 
     return suitable_land_cover
 
@@ -159,6 +136,7 @@ def _rasterize_regions(shapes, reference_raster):
 @click.argument("settlement_path", type=str)
 @click.argument("bathymetry_path", type=str)
 @click.argument("protected_area_path", type=str)
+@click.argument("land_cover_configuration_yaml_string", type=str)
 @click.argument("output_path", type=str)
 @click.argument("plot_path", type=str)
 def resample_inputs(
@@ -168,6 +146,7 @@ def resample_inputs(
     settlement_path,
     bathymetry_path,
     protected_area_path,
+    land_cover_configuration_yaml_string,
     output_path,
     plot_path,
 ):
@@ -178,23 +157,21 @@ def resample_inputs(
 
     """
     shapes = gpd.read_parquet(shapes_path)
+    resampled = xr.Dataset()
 
     ##
     # Land cover
     ##
-    suitable_land_cover_types = sorted(list(set(CoverType.values())))
     ds_land_cover = rxr.open_rasterio(land_cover_path)
-    reference_raster = xr.ones_like(ds_land_cover)
+    land_cover_types = yaml.safe_load(land_cover_configuration_yaml_string)
+    reference_raster = xr.ones_like(ds_land_cover, dtype=np.byte)
     reference_resolution = ds_land_cover.rio.resolution()
-    print(f"Land cover resolution: {reference_resolution}")
-    land_cover = get_suitable_land_cover_type(ds_land_cover, suitable_land_cover_types)
+    print(f"Land cover resolution used as reference resolution: {reference_resolution}")
+    land_cover = aggregate_land_cover_types(ds_land_cover, land_cover_types)
 
-    resampled = xr.Dataset()
-
-    for land_type in suitable_land_cover_types:
-        resampled[f"landcover_{land_type}"] = land_cover[land_type].rio.reproject_match(
-            reference_raster, resampling=Resampling.average
-        )
+    for land_type in sorted(list(set(land_cover_types.values()))):
+        resampled[f"landcover_{land_type}"] = land_cover[land_type]
+    del ds_land_cover, land_cover
 
     ##
     # Pixel area
@@ -204,6 +181,7 @@ def resample_inputs(
     resampled["pixel_area"] = pixel_area.expand_dims({"x": resampled.x}).transpose(
         "y", "x"
     )
+    del pixel_area
 
     ##
     # Regions
@@ -227,17 +205,21 @@ def resample_inputs(
         dims=resampled["regions"].dims,
         coords=resampled["regions"].coords,
     )
-    resampled["regions_land"] = xr.where(mask_land, 1.0, np.nan)
-    resampled["regions_maritime"] = xr.where(mask_maritime, 1.0, np.nan)
+    resampled["regions_land"] = xr.where(mask_land, np.half(1.0), np.half(np.nan))
+    resampled["regions_maritime"] = xr.where(
+        mask_maritime, np.half(1.0), np.half(np.nan)
+    )
+    del mask_land, mask_maritime
 
     ##
     # Slope
     ##
     da_slope = rxr.open_rasterio(slope_path, masked=True) / 100
     print(f"Slope resolution: {da_slope.rio.resolution()}")
-    resampled["slope"] = da_slope.astype(float).rio.reproject_match(
+    resampled["slope"] = da_slope.rio.reproject_match(
         reference_raster, resampling=Resampling.average
     )
+    del da_slope
 
     ##
     # Settlement in sum of area of built-up surface (m2)
@@ -260,6 +242,7 @@ def resample_inputs(
     resampled["settlement_area"] = (
         resampled["settlement_share"] * resampled["pixel_area"]
     )
+    del ds_settlement, ds_settlement_pixel_area
 
     ##
     # Bathymetry
@@ -272,6 +255,7 @@ def resample_inputs(
     resampled["bathymetry"] = ds_bathymetry.rio.reproject_match(
         reference_raster, resampling=Resampling.average
     )
+    del ds_bathymetry
 
     ##
     # Protected areas
@@ -287,14 +271,42 @@ def resample_inputs(
         protected_areas.geometry, protected_areas.crs
     )
     resampled["protected"] = resampled["protected"].fillna(0)
+    del protected_areas
 
-    compression = {
+    netcdf4_encoding = {
         var: {"zlib": True, "complevel": 1}
         for var in resampled.data_vars
         if var not in ["spatial_ref", "band"]
     }
+    for v in ["regions_land", "regions_maritime"]:
+        netcdf4_encoding[v]["dtype"] = "int8"
+        netcdf4_encoding[v]["scale_factor"] = 1
+        netcdf4_encoding[v]["add_offset"] = 0
+        netcdf4_encoding[v]["_FillValue"] = -128
 
-    resampled.to_netcdf(output_path, encoding=compression)
+    print("Saving result to output path:", output_path)
+    resampled.to_netcdf(output_path, encoding=netcdf4_encoding)
+
+    print("Saving image to plot path:", plot_path)
+    # If needed, resample `resampled` to fit within a maximum of `max_pixels` pixels
+    max_pixels = 1000000
+    total_pixels = resampled.sizes["y"] * resampled.sizes["x"]
+    if total_pixels > max_pixels:
+        # Calculate the new resolution to fit within the max_pixels limit
+        resolution_multiplier = 1 / math.sqrt(total_pixels / max_pixels)
+        new_y_size = int(resampled.sizes["y"] * resolution_multiplier)
+        new_x_size = int(resampled.sizes["x"] * resolution_multiplier)
+        print(
+            f"Resampling old size {resampled.sizes['y']} x {resampled.sizes['x']} "
+            f"to new size: {new_y_size} x {new_x_size} "
+            f"to fit within {max_pixels} pixels."
+        )
+
+        resampled = resampled.coarsen(
+            x=round(resampled.sizes["x"] / new_x_size),
+            y=round(resampled.sizes["y"] / new_y_size),
+            boundary="trim",
+        ).mean()
 
     script_utils.plot_all_dataset_variables(resampled, ncols=3, savefig=plot_path)
 

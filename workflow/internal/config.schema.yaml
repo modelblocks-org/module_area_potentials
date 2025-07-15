@@ -16,6 +16,12 @@ properties:
     required: [projection, resolution]
     additionalProperties: false
 
+  land_cover_types:
+    type: object
+    additionalProperties:
+      type: string
+    description: "Mapping of land cover types to their categories."
+
   techs:
     type: object
     additionalProperties:
