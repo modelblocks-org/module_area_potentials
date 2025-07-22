@@ -19,3 +19,5 @@ dependencies:
   - pyyaml
   - pyproj=3.7.1
   - utm=0.7.0
+  - glom=24.11.0
+  - dask=2025.7.0

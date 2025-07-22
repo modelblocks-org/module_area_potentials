@@ -3,19 +3,32 @@
 import geopandas as gpd
 import pandas as pd
 import rioxarray as rxr
+import script_utils
 import xarray as xr
+from resample import _rasterize_regions
 
 
-def report(shapes, resampled_path, area_potentials, csv_path, html_path):
+def report(shapes, area_potentials, csv_path, html_path, png_path):
     """Generate a report summarizing area potentials for different technologies."""
     shapes = gpd.read_parquet(shapes)
-    ds_inputs = xr.open_dataset(resampled_path, decode_coords="all")
-    # FIXME: this is a workaround for the CRS not being set correctly; not sure why
-    ds_inputs.rio.write_crs(ds_inputs.spatial_ref.attrs["crs_wkt"], inplace=True)
+
+    ds_inputs = xr.Dataset()
 
     # Collect the area potentials from the input files
     for area_potential in area_potentials:
-        ds_inputs[area_potential] = rxr.open_rasterio(area_potential)
+        ds_inputs[area_potential] = rxr.open_rasterio(
+            area_potential, mask_and_scale=True
+        )
+
+    ds_inputs["regions"] = (
+        ("y", "x"),
+        _rasterize_regions(shapes, ds_inputs[area_potential]),
+    )
+
+    script_utils.plot_all_dataset_variables(
+        ds_inputs, ncols=2, savefig=png_path, categorical_vars=["regions"]
+    )
+
     ds_inputs = ds_inputs.squeeze().drop_vars(["band", "spatial_ref"])
 
     # Group the area potentials by regions, sum them up, and collect the resulting Series
@@ -48,8 +61,8 @@ def report(shapes, resampled_path, area_potentials, csv_path, html_path):
 if __name__ == "__main__":
     report(
         snakemake.input.shapes,
-        snakemake.input.resampled_path,
         snakemake.input.area_potentials,
         snakemake.output.csv,
         snakemake.output.html,
+        snakemake.output.png,
     )
