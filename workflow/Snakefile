@@ -23,12 +23,13 @@ workflow.source_path("scripts/geo.py")
 
 wildcard_constraints:
     shape="[a-zA-Z0-9_-]+",
+    subunit="[a-zA-Z0-9_]+",
     tech="|".join(config["techs"].keys()),
 
 
 # Add all your includes here.
+include: "rules/functions.smk"
 include: "rules/automatic.smk"
-include: "rules/prepare.smk"
 include: "rules/process.smk"
 
 

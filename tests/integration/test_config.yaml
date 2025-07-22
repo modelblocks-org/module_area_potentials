@@ -1,5 +1,9 @@
+
+
 module_area_potentials:
+  tiny_files: True
   buffer_crs: "epsg:8857"
+  split_by: country_id
 
   land_cover_types:
     POST_FLOODING: FARM

@@ -1,34 +1,117 @@
 """Rules to used to download automatic resource files."""
 
+if config["tiny_files"]:
 
-rule download_cutout_slope:
-    message:
-        "Download slope data covering the bounds of the input shapefile."
-    params:
-        cog_url=internal["resources"]["automatic"]["slope"],
-    input:
-        vector="resources/user/shapes/{shape}.parquet",
-    output:
-        path="resources/automatic/cutout/{shape}/slope.tif",
-    log:
-        "logs/{shape}/download_cutout_slope.log",
-    wrapper:
-        "v7.2.0/geo/rasterio/clip-geotiff"
+    ##
+    # Directly download clipped slope and bathymetry data
+    ##
+
+    rule clip_slope:
+        message:
+            "Download slope data covering the bounds of the input shapefile."
+        params:
+            cog_url=internal["resources"]["automatic"]["slope"],
+        input:
+            vector="resources/user/shapes/{shape}.parquet",
+        output:
+            path="resources/automatic/cutout/{shape}/slope.tif",
+        log:
+            "logs/{shape}/clip_slope.log",
+        wrapper:
+            "v7.2.0/geo/rasterio/clip-geotiff"
+
+    rule clip_bathymetry:
+        message:
+            "Download bathymetry data covering the bounds of the input shapefile."
+        params:
+            cog_url=internal["resources"]["automatic"]["bathymetry"],
+        input:
+            vector="resources/user/shapes/{shape}.parquet",
+        output:
+            path="resources/automatic/cutout/{shape}/bathymetry.tif",
+        log:
+            "logs/{shape}/clip_bathymetry.log",
+        wrapper:
+            "v7.2.0/geo/rasterio/clip-geotiff"
+
+else:
+
+    ##
+    # Download global slope and bathymetry data, then clip the files locally
+    ##
+
+    rule download_slope:
+        message:
+            "Download global slope data."
+        params:
+            url=internal["resources"]["automatic"]["slope"],
+        output:
+            path="resources/automatic/global/slope.tif",
+        log:
+            "logs/download_slope.log",
+        conda:
+            "../envs/shell.yaml"
+        shell:
+            """
+            curl -sSLo "{output}" "{params.url}"
+            """
+
+    rule download_bathymetry:
+        message:
+            "Download global bathymetry data."
+        params:
+            url=internal["resources"]["automatic"]["bathymetry"],
+        output:
+            path="resources/automatic/global/bathymetry.tif",
+        log:
+            "logs/download_bathymetry.log",
+        conda:
+            "../envs/shell.yaml"
+        shell:
+            """
+            curl -sSLo "{output}" "{params.url}"
+            """
+
+    rule clip_slope:
+        message:
+            "Cut slope data to the bounds of the input shapefile."
+        input:
+            script=workflow.source_path("../scripts/clip_raster.py"),
+            shapes="resources/user/shapes/{shape}.parquet",
+            slope=rules.download_slope.output,
+        output:
+            "resources/automatic/cutout/{shape}/slope.tif",
+        log:
+            "logs/{shape}/clip_slope.log",
+        conda:
+            "../envs/default.yaml"
+        shell:
+            """
+            python "{input.script}" "{input.slope}" "{input.shapes}" "{output}" 2> "{log}"
+            """
+
+    rule clip_bathymetry:
+        message:
+            "Cut bathymetry data to the bounds of the input shapefile."
+        input:
+            script=workflow.source_path("../scripts/clip_raster.py"),
+            shapes="resources/user/shapes/{shape}.parquet",
+            bathymetry=rules.download_bathymetry.output,
+        output:
+            "resources/automatic/cutout/{shape}/bathymetry.tif",
+        log:
+            "logs/{shape}/clip_bathymetry.log",
+        conda:
+            "../envs/default.yaml"
+        shell:
+            """
+            python "{input.script}" "{input.bathymetry}" "{input.shapes}" "{output}" 2> "{log}"
+            """
 
 
-rule download_cutout_bathymetry:
-    message:
-        "Download bathymetry data covering the bounds of the input shapefile."
-    params:
-        cog_url=internal["resources"]["automatic"]["bathymetry"],
-    input:
-        vector="resources/user/shapes/{shape}.parquet",
-    output:
-        path="resources/automatic/cutout/{shape}/bathymetry.tif",
-    log:
-        "logs/{shape}/download_cutout_bathymetry.log",
-    wrapper:
-        "v7.2.0/geo/rasterio/clip-geotiff"
+##
+# Globcover
+##
 
 
 rule download_globcover:
@@ -68,6 +151,30 @@ rule unzip_globcover:
         """
 
 
+rule clip_landcover:
+    message:
+        "Cut land cover data to the bounds of the input shapefile."
+    input:
+        script=workflow.source_path("../scripts/clip_raster.py"),
+        shapes="resources/user/shapes/{shape}.parquet",
+        landcover=rules.unzip_globcover.output,
+    output:
+        "resources/automatic/cutout/{shape}/landcover.tif",
+    log:
+        "logs/{shape}/clip_landcover.log",
+    conda:
+        "../envs/default.yaml"
+    shell:
+        """
+        python "{input.script}" "{input.landcover}" "{input.shapes}" "{output}" 2> "{log}"
+        """
+
+
+##
+# Global Human Settlement Layer (GHSL)
+##
+
+
 rule download_ghsl:
     message:
         "Download the GHSL (Global Human Settlement Layer) built-up surface data."
@@ -102,4 +209,48 @@ rule unzip_ghsl:
     shell:
         """
         python "{input.script}" "{input.zipfile}" -f "{params.target_file}" -o "{output}" 2> "{log}"
+        """
+
+
+rule clip_settlement:
+    message:
+        "Cut settlement data to the bounds of the input shapefile."
+    input:
+        script=workflow.source_path("../scripts/clip_raster.py"),
+        shapes="resources/user/shapes/{shape}.parquet",
+        settlement=rules.unzip_ghsl.output,
+    output:
+        "resources/automatic/cutout/{shape}/settlement.tif",
+    log:
+        "logs/{shape}/clip_settlement.log",
+    conda:
+        "../envs/default.yaml"
+    shell:
+        """
+        python "{input.script}" "{input.settlement}" "{input.shapes}" "{output}" 2> "{log}"
+        """
+
+
+##
+# Protected Areas (WDPA)
+##
+
+
+rule rasterise_clip_wdpa:
+    message:
+        "Rasterise and cut WDPA data to the bounds of the input shapefile, using the landcover raster as reference for the rasterisation."
+    input:
+        script=workflow.source_path("../scripts/clip_and_rasterise_polys.py"),
+        shapes="resources/user/shapes/{shape}.parquet",
+        reference_raster=rules.clip_landcover.output,
+        protected_areas="resources/user/wdpa.gdb",
+    output:
+        "resources/automatic/cutout/{shape}/wdpa.tif",
+    log:
+        "logs/{shape}/clip_wdpa.log",
+    conda:
+        "../envs/default.yaml"
+    shell:
+        """
+        python "{input.script}" "{input.shapes}" "{input.reference_raster}" "{input.protected_areas}" "{output}" 2> "{log}"
         """

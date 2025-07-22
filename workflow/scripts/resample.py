@@ -157,12 +157,20 @@ def resample_inputs(
 
     """
     shapes = gpd.read_parquet(shapes_path)
+    xmin, ymin, xmax, ymax = shapes.total_bounds
     resampled = xr.Dataset()
 
     ##
     # Land cover
     ##
     ds_land_cover = rxr.open_rasterio(land_cover_path)
+
+    # By subsetting the land cover dataset to the bounding box of the shapes,
+    # we ensure that we only work with the relevant area as this is the reference
+    # raster used elsewhere
+    ds_land_cover = ds_land_cover.rio.clip_box(
+        minx=xmin, miny=ymin, maxx=xmax, maxy=ymax
+    )
     land_cover_types = yaml.safe_load(land_cover_configuration_yaml_string)
     reference_raster = xr.ones_like(ds_land_cover, dtype=np.byte)
     reference_resolution = ds_land_cover.rio.resolution()
@@ -260,17 +268,10 @@ def resample_inputs(
     ##
     # Protected areas
     ##
-    # FIXME: read the right layer(s) and deal with both poly and point layers
-    xmin, ymin, xmax, ymax = shapes.total_bounds
-    protected_areas = gpd.read_file(protected_area_path)
-    print(f"Protected areas: {len(protected_areas)}")
-    protected_areas = protected_areas.cx[xmin:xmax, ymin:ymax]
-    print(f"Protected areas after applying total_bounds: {len(protected_areas)}")
-
-    resampled["protected"] = reference_raster.rio.clip(
-        protected_areas.geometry, protected_areas.crs
+    protected_areas = rxr.open_rasterio(protected_area_path)
+    resampled["protected"] = protected_areas.rio.reproject_match(
+        reference_raster, resampling=Resampling.average
     )
-    resampled["protected"] = resampled["protected"].fillna(0)
     del protected_areas
 
     netcdf4_encoding = {

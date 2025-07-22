@@ -3,18 +3,17 @@ description: "Schema for user-provided configuration files."
 type: object
 additionalProperties: false
 properties:
+  tiny_files:
+    type: boolean
+    description: "If True, use smaller, clipped files for processing. If False, use full global datasets."
+
   buffer_crs:
     type: string
     description: "CRS for buffering shapes. Use 'UTM' for UTM zones or 'epsg:xxxx' for a specific CRS."
-  specs:
-    type: object
-    properties:
-      projection:
-        type: string
-      resolution:
-        type: number
-    required: [projection, resolution]
-    additionalProperties: false
+
+  split_by:
+    type: string
+    description: "Field to split the input shapes by, e.g., 'country_id'."
 
   land_cover_types:
     type: object
@@ -48,3 +47,8 @@ properties:
           type: object
       required: ["initial_area", "continuous_layers", "binary_layers"]
       additionalProperties: false
+
+  overrides:
+    type: object
+    additionalProperties:
+      type: object

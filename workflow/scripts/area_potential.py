@@ -3,6 +3,7 @@
 import click
 import geo
 import geopandas as gpd
+import glom
 import matplotlib.pyplot as plt
 import xarray as xr
 import yaml
@@ -15,8 +16,15 @@ import yaml
 @click.argument("buffer_crs", type=str)
 @click.argument("output_path", type=str)
 @click.argument("plot_path", type=str)
+@click.option("--override_config", type=str)
 def get_area_potential(
-    shapes_path, resampled_path, config, buffer_crs, output_path, plot_path
+    shapes_path,
+    resampled_path,
+    config,
+    buffer_crs,
+    output_path,
+    plot_path,
+    override_config,
 ):
     """Calculate the area potential based on the provided configuration.
 
@@ -27,6 +35,7 @@ def get_area_potential(
         buffer_crs (str): Coordinate Reference System for buffering shapes.
         output_path (str): Path to save the resulting area potential raster.
         plot_path (str): Path to save the plot of the area potential.
+        override_config (str): Configuration override YAML string.
 
     Returns:
         None
@@ -37,6 +46,10 @@ def get_area_potential(
     # FIXME: this is a workaround for the CRS not being set correctly; not sure why
     ds.rio.write_crs(ds.spatial_ref.attrs["crs_wkt"], inplace=True)
     config = yaml.safe_load(config)
+    if override_config:
+        override_config = yaml.safe_load(override_config)
+        config = glom.merge([config, override_config])
+        print(f"\nConfig after override: {config}\n")
 
     # Start with the configured pixel area as a base
     potential_da = ds[config["initial_area"]].squeeze(drop=True)  # Drop `band`
@@ -96,10 +109,17 @@ def get_area_potential(
     potential_da.name = "area_potential"
     potential_da = potential_da.transpose("band", "y", "x")
     potential_da.rio.write_crs(ds.rio.crs, inplace=True)
-    potential_da.rio.to_raster(output_path, driver="GTiff", compress="LZW")
 
     potential_da.plot()
     plt.savefig(plot_path, bbox_inches="tight")
+
+    # Fill NaN with a nodata value only after plotting
+    nodata_value = -1
+    potential_da = potential_da.fillna(nodata_value)
+    potential_da.rio.write_nodata(nodata_value, inplace=True)
+    potential_da.rio.to_raster(
+        output_path, driver="GTiff", compress="LZW", write_nodata=True
+    )
 
 
 if __name__ == "__main__":
