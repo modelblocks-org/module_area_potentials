@@ -6,7 +6,7 @@ tiny_files: False
 #   A good option is "epsg:8857" (WGS 84 / Equal Earth Greenwich) for global coverage
 buffer_crs: "epsg:8857"
 
-split_by: country_id
+split_by: country_id  # likely country_id or shape_id
 
 land_cover_types:
   POST_FLOODING: FARM

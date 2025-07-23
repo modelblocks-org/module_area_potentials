@@ -100,3 +100,5 @@ module_area_potentials:
         protected: 0
       shapes_buffer:
         land: 10000  # meters
+
+  overrides: {}
