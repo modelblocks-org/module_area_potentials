@@ -289,26 +289,6 @@ def resample_inputs(
     resampled.to_netcdf(output_path, encoding=netcdf4_encoding)
 
     print("Saving image to plot path:", plot_path)
-    # If needed, resample `resampled` to fit within a maximum of `max_pixels` pixels
-    max_pixels = 5000000
-    total_pixels = resampled.sizes["y"] * resampled.sizes["x"]
-    if total_pixels > max_pixels:
-        # Calculate the new resolution to fit within the max_pixels limit
-        resolution_multiplier = 1 / math.sqrt(total_pixels / max_pixels)
-        new_y_size = int(resampled.sizes["y"] * resolution_multiplier)
-        new_x_size = int(resampled.sizes["x"] * resolution_multiplier)
-        print(
-            f"Resampling old size {resampled.sizes['y']} x {resampled.sizes['x']} "
-            f"to new size: {new_y_size} x {new_x_size} "
-            f"to fit within {max_pixels} pixels."
-        )
-
-        resampled = resampled.coarsen(
-            x=round(resampled.sizes["x"] / new_x_size),
-            y=round(resampled.sizes["y"] / new_y_size),
-            boundary="trim",
-        ).mean()
-
     script_utils.plot_all_dataset_variables(resampled, ncols=3, savefig=plot_path)
 
 

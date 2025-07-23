@@ -29,6 +29,26 @@ def random_categorical_cmap(n, base_cmap="tab20", seed=42):
 
 def plot_all_dataset_variables(ds, ncols=2, savefig=None, categorical_vars=[]):
     """Plot all variables in an xarray dataset on a grid of plots."""
+    # If needed, resample `ds` to fit within a maximum of `max_pixels` pixels
+    max_pixels = 5000000
+    total_pixels = ds.sizes["y"] * ds.sizes["x"]
+    if total_pixels > max_pixels:
+        # Calculate the new resolution to fit within the max_pixels limit
+        resolution_multiplier = 1 / math.sqrt(total_pixels / max_pixels)
+        new_y_size = int(ds.sizes["y"] * resolution_multiplier)
+        new_x_size = int(ds.sizes["x"] * resolution_multiplier)
+        print(
+            f"Resampling old size {ds.sizes['y']} x {ds.sizes['x']} "
+            f"to new size: {new_y_size} x {new_x_size} "
+            f"to fit within {max_pixels} pixels."
+        )
+
+        ds = ds.coarsen(
+            x=round(ds.sizes["x"] / new_x_size),
+            y=round(ds.sizes["y"] / new_y_size),
+            boundary="trim",
+        ).mean()
+
     # Drop dimensionless variables
     ds = ds.drop_vars(lambda x: [v for v, da in x.variables.items() if not da.ndim])
 

@@ -98,6 +98,23 @@ rule aggregate_area_potential:
         """
 
 
+rule plot_aggregated_area_potential:
+    message:
+        "Plot aggregated area potential for the tech {wildcards.tech} in {wildcards.shape}."
+    input:
+        rules.aggregate_area_potential.output.aggregated_area_potential,
+    output:
+        report(
+            "results/{shape}/area_potential_{tech}.png", category="area_potential_plot"
+        ),
+    log:
+        "logs/{shape}/plot_aggregated_area_potential_{tech}.log",
+    conda:
+        "../envs/default.yaml"
+    script:
+        "../scripts/tif_to_png.py"
+
+
 rule area_potential_report:
     message:
         "Generate an overview report of the area potential for all techs in shapes {wildcards.shape}."
@@ -107,15 +124,15 @@ rule area_potential_report:
             "results/{{shape}}/area_potential_{tech}.tif",
             tech=config["techs"].keys(),
         ),
+        area_potential_plots=expand(
+            "results/{{shape}}/area_potential_{tech}.png",
+            tech=config["techs"].keys(),
+        ),
     output:
         csv="results/{shape}/area_potential_report.csv",
         html=report(
             "results/{shape}/area_potential_report.html",
             category="area_potential_report_table",
-        ),
-        png=report(
-            "results/{shape}/area_potential_report.png",
-            category="area_potential_report_image",
         ),
     log:
         "logs/{shape}/area_potential_report.log",
