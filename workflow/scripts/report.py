@@ -33,7 +33,9 @@ def report(shapes, area_potentials, csv_path, html_path):
             .squeeze()
             .drop_vars(["band", "spatial_ref"])
         )
-        dataframes.append(da_area_potential.groupby(regions).sum().to_pandas())
+        df_ = da_area_potential.groupby(regions).sum().to_pandas()
+        df_.name = area_potential_file
+        dataframes.append(df_)
         del da_area_potential
 
     df = pd.concat(dataframes, axis=1)
