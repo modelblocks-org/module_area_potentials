@@ -94,7 +94,7 @@ rule aggregate_area_potential:
         "../envs/default.yaml"
     shell:
         """
-        gdal_merge -o "{output.aggregated_area_potential}" -a_nodata -1 {input}
+        gdalwarp --config GDAL_CACHEMAX 3000 -wm 3000 -of GTiff -co COMPRESS=LZW {input} "{output.aggregated_area_potential}"
         """
 
 
