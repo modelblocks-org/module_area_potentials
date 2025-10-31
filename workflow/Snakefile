@@ -17,8 +17,8 @@ with open(workflow.source_path("internal/settings.yaml"), "r") as f:
     internal = yaml.safe_load(f)
 
 # Python files that are imported from other scripts and need to be included when accessing the module
-workflow.source_path("scripts/script_utils.py")
-workflow.source_path("scripts/geo.py")
+workflow.source_path("scripts/_script_utils.py")
+workflow.source_path("scripts/_geo.py")
 
 
 wildcard_constraints:

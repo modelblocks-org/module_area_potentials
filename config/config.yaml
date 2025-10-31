@@ -1,5 +1,3 @@
-tiny_files: False
-
 # Options for buffering: either a string of the form "epsg:xxxx" or "UTM"/"utm"
 # - "UTM": project each shape to the UTM zone of its centroid for buffering
 # - "epsg:xxxx": use the specified CRS for all buffering
@@ -8,30 +6,7 @@ buffer_crs: "epsg:8857"
 
 split_by: country_id  # likely country_id or shape_id
 
-land_cover_types:
-  POST_FLOODING: FARM
-  RAINFED_CROPLANDS: FARM
-  MOSAIC_CROPLAND: FARM
-  MOSAIC_VEGETATION: FARM
-  CLOSED_TO_OPEN_BROADLEAVED_FOREST: FOREST
-  CLOSED_BROADLEAVED_FOREST: FOREST
-  OPEN_BROADLEAVED_FOREST: FOREST
-  CLOSED_NEEDLELEAVED_FOREST: FOREST
-  OPEN_NEEDLELEAVED_FOREST: FOREST
-  CLOSED_TO_OPEN_MIXED_FOREST: FOREST
-  MOSAIC_FOREST: FOREST
-  CLOSED_TO_OPEN_REGULARLY_FLOODED_FOREST: FOREST
-  CLOSED_REGULARLY_FLOODED_FOREST: FOREST
-  MOSAIC_GRASSLAND: OTHER
-  CLOSED_TO_OPEN_SHRUBLAND: OTHER
-  CLOSED_TO_OPEN_HERBS: OTHER
-  SPARSE_VEGETATION: OTHER
-  CLOSED_TO_OPEN_REGULARLY_FLOODED_GRASSLAND: OTHER
-  BARE_AREAS: OTHER
-  ARTIFICIAL_SURFACES_AND_URBAN_AREAS: URBAN
-  WATER_BODIES: WATER
-  PERMANENT_SNOW: NOT_SUITABLE
-  NO_DATA: NOT_SUITABLE
+# Optional - specify land_cover_types here to override the internal defaults.
 
 techs:
   pv_rooftop:

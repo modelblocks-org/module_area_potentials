@@ -14,7 +14,7 @@ checkpoint breakup_shape:
         "../envs/default.yaml"
     shell:
         """
-        python "{input.script}" "{input.shapes}" "{params.split_by}" "{output}" 2> "{log}"
+        python {input.script:q} {input.shapes:q} {params.split_by:q} {output:q} 2> {log:q}
         """
 
 
@@ -22,10 +22,10 @@ rule prepare_resampled_inputs:
     message:
         "Resample inputs for {wildcards.subunit} in {wildcards.shape} to the projection and resolution of the land cover data, while aggregating land cover types."
     params:
-        land_cover_types_yaml_string=config["land_cover_types"],
+        # Use internal defaults if not overridden
+        land_cover_types_yaml_string=internal["land_cover_types"] | config.get("land_cover_types", {})
     input:
         script=workflow.source_path("../scripts/resample.py"),
-        # shapes="resources/automatic/shapes/{shape}/{subunit}.parquet",
         shapes=rules.breakup_shape.output,
         land_cover_path=rules.clip_landcover.output,
         slope_path=rules.clip_slope.output,
@@ -44,10 +44,11 @@ rule prepare_resampled_inputs:
         "../envs/default.yaml"
     shell:
         """
-        python "{input.script}" \
-        "{input.shapes}/{wildcards.subunit}.parquet" "{input.land_cover_path}" "{input.slope_path}" "{input.settlement_path}" "{input.bathymetry_path}" "{input.protected_area_path}" \
-        "{params.land_cover_types_yaml_string}" \
-        "{output.resampled_input}" "{output.plot}" 2> "{log}"
+        python {input.script:q} \
+        "{input.shapes}/{wildcards.subunit}.parquet" \
+        {input.land_cover_path:q} {input.slope_path:q} {input.settlement_path:q} {input.bathymetry_path:q} {input.protected_area_path:q} \
+        {params.land_cover_types_yaml_string:q} \
+        {output.resampled_input:q} {output.plot:q} 2> {log:q}
         """
 
 
@@ -56,13 +57,10 @@ rule area_potential:
         "Compute area potential for the tech {wildcards.tech} and {wildcards.subunit} in {wildcards.shape}."
     params:
         config=lambda wildcards: config["techs"][f"{wildcards.tech}"],
-        subunit_override_config=lambda wildcards: config["overrides"]
-        .get(wildcards.subunit, {})
-        .get(wildcards.tech, {}),
+        subunit_override_config=lambda wildcards: config.get("overrides", {}).get(wildcards.subunit, {}).get(wildcards.tech, {}),
         buffer_crs=lambda wildcards: config["buffer_crs"],
     input:
         script=workflow.source_path("../scripts/area_potential.py"),
-        # shapes="resources/automatic/shapes/{shape}/{subunit}.parquet",
         shapes=rules.breakup_shape.output,
         resampled_path=rules.prepare_resampled_inputs.output.resampled_input,
     output:
@@ -77,7 +75,7 @@ rule area_potential:
         "../envs/default.yaml"
     shell:
         """
-        python "{input.script}" "{input.shapes}/{wildcards.subunit}.parquet" "{input.resampled_path}" "{params.config}" "{params.buffer_crs}" "{output.area_potential}" "{output.plot}" --override_config="{params.subunit_override_config}" 2> "{log}"
+        python {input.script:q} "{input.shapes}/{wildcards.subunit}.parquet" {input.resampled_path:q} {params.config:q} {params.buffer_crs:q} {output.area_potential:q} {output.plot:q} --override_config={params.subunit_override_config:q} 2> {log:q}
         """
 
 
@@ -94,7 +92,7 @@ rule aggregate_area_potential:
         "../envs/default.yaml"
     shell:
         """
-        gdalwarp --config GDAL_CACHEMAX 3000 -wm 3000 -of GTiff -co COMPRESS=LZW {input} "{output.aggregated_area_potential}"
+        gdalwarp --config GDAL_CACHEMAX 3000 -wm 3000 -of GTiff -co COMPRESS=LZW {input} {output.aggregated_area_potential:q}
         """
 
 
