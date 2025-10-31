@@ -27,6 +27,15 @@ def random_categorical_cmap(n, base_cmap="tab20", seed=42):
     return mcolors.ListedColormap(colors)
 
 
+def plot_with_zero_separate(ax, da, cmap="viridis", zero_color="#e0e0e0"):
+    """Plot data array with zero values in a separate color."""
+    da.where(da != 0).plot(ax=ax, cmap=cmap)
+    da.where(da == 0).plot(
+        ax=ax, cmap=mcolors.ListedColormap([zero_color]), add_colorbar=False
+    )
+    return ax
+
+
 def plot_all_dataset_variables(ds, ncols=2, savefig=None, categorical_vars=[]):
     """Plot all variables in an xarray dataset on a grid of plots."""
     # If needed, resample `ds` to fit within a maximum of `max_pixels` pixels
@@ -63,7 +72,8 @@ def plot_all_dataset_variables(ds, ncols=2, savefig=None, categorical_vars=[]):
             cmap = random_categorical_cmap(len(ds[var].values))
         else:
             cmap = "viridis"
-        ds[var].plot(ax=axes[i], cmap=cmap)
+
+        plot_with_zero_separate(ax=axes[i], da=ds[var], cmap=cmap)
         axes[i].set_title(var)
         # We want to save rasterized images also for e.g. PDF output
         # Any actor with a zorder below the value given here is rasterized

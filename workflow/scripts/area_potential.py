@@ -7,6 +7,7 @@ import glom
 import matplotlib.pyplot as plt
 import xarray as xr
 import yaml
+from _script_utils import plot_with_zero_separate
 
 
 @click.command()
@@ -55,22 +56,23 @@ def get_area_potential(
     # Start with the configured pixel area as a base
     potential_da = ds[config["initial_area"]].squeeze(drop=True)  # Drop `band`
 
-    # Drop pixels from binary layers with share 0 from potential_da
+    # Zero out pixels from binary layers with share 0 from potential_da
     binary_layers = config.get("binary_layers", {})
     zero_binary_layers = [layer for layer, value in binary_layers.items() if value == 0]
     for layer in zero_binary_layers:
         if layer in ds:
-            potential_da = potential_da.where(~(ds[layer] > 0))
+            potential_da = potential_da.where(~(ds[layer] > 0), other=0)
         else:
             print(f"Warning: Layer '{layer}' not found in dataset. Skipping.")
 
-    # Apply the continuous_layers criteria to drop additional pixels
+    # Apply the continuous_layers criteria to zero out additional pixels
     continuous_layers = config.get("continuous_layers", {})
     for layer, layer_config in continuous_layers.items():
         if layer in ds:
             # Apply the min-max criteria
             potential_da = potential_da.where(
-                (ds[layer] <= layer_config["max"]) & (ds[layer] >= layer_config["min"])
+                (ds[layer] <= layer_config["max"]) & (ds[layer] >= layer_config["min"]),
+                other=0,
             )
             # If a share is defined, multiply the pixel area by the share
             if "share" in layer_config:
@@ -111,7 +113,8 @@ def get_area_potential(
     potential_da = potential_da.transpose("band", "y", "x")
     potential_da.rio.write_crs(ds.rio.crs, inplace=True)
 
-    potential_da.plot()
+    fig, ax = plt.subplots(1, 1)
+    ax = plot_with_zero_separate(ax=ax, da=potential_da)
     plt.savefig(plot_path, bbox_inches="tight")
 
     # Fill NaN with a nodata value only after plotting
