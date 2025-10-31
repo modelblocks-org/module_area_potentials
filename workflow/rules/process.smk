@@ -23,7 +23,8 @@ rule prepare_resampled_inputs:
         "Resample inputs for {wildcards.subunit} in {wildcards.shape} to the projection and resolution of the land cover data, while aggregating land cover types."
     params:
         # Use internal defaults if not overridden
-        land_cover_types_yaml_string=internal["land_cover_types"] | config.get("land_cover_types", {})
+        land_cover_types_yaml_string=internal["land_cover_types"]
+        | config.get("land_cover_types", {}),
     input:
         script=workflow.source_path("../scripts/resample.py"),
         shapes=rules.breakup_shape.output,
@@ -57,7 +58,9 @@ rule area_potential:
         "Compute area potential for the tech {wildcards.tech} and {wildcards.subunit} in {wildcards.shape}."
     params:
         config=lambda wildcards: config["techs"][f"{wildcards.tech}"],
-        subunit_override_config=lambda wildcards: config.get("overrides", {}).get(wildcards.subunit, {}).get(wildcards.tech, {}),
+        subunit_override_config=lambda wildcards: config.get("overrides", {})
+        .get(wildcards.subunit, {})
+        .get(wildcards.tech, {}),
         buffer_crs=lambda wildcards: config["buffer_crs"],
     input:
         script=workflow.source_path("../scripts/area_potential.py"),
