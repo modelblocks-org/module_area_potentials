@@ -1,6 +1,6 @@
 """Rules to used to download automatic resource files."""
 
-if config["tiny_files"]:
+if config.get("tiny_files", False):
 
     ##
     # Directly download clipped slope and bathymetry data
