@@ -1,7 +1,7 @@
 """This script plots a TIF file to PNG format."""
 
 import rioxarray as rxr
-from script_utils import plot_all_dataset_variables
+from _script_utils import plot_all_dataset_variables
 
 
 def tif_to_png(tif_file_in, png_file_out):

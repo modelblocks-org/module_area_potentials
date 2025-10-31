@@ -1,7 +1,7 @@
 """This script calculates the area potential based on the provided configuration."""
 
+import _geo
 import click
-import geo
 import geopandas as gpd
 import glom
 import matplotlib.pyplot as plt
@@ -43,7 +43,8 @@ def get_area_potential(
     """
     shapes = gpd.read_parquet(shapes_path)
     ds = xr.open_dataset(resampled_path, decode_coords="all")
-    # FIXME: this is a workaround for the CRS not being set correctly; not sure why
+    # NOTE: this is a workaround for the CRS not being set correctly, ideally this
+    # should not be necessary
     ds.rio.write_crs(ds.spatial_ref.attrs["crs_wkt"], inplace=True)
     config = yaml.safe_load(config)
     if override_config:
@@ -93,7 +94,7 @@ def get_area_potential(
             buffer_distance = config["shapes_buffer"][shape_class]
             shapes_subset = shapes[shapes["shape_class"] == shape_class]
             if buffer_crs.lower() == "utm":
-                buffer = geo.apply_utm_buffer(
+                buffer = _geo.apply_utm_buffer(
                     shapes_subset, buffer_distance_m=buffer_distance
                 ).to_crs(ds.rio.crs)["geometry"]
             else:

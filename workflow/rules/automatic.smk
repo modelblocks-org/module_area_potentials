@@ -53,7 +53,7 @@ else:
             "../envs/shell.yaml"
         shell:
             """
-            curl -sSLo "{output}" "{params.url}"
+            curl -sSLo {output:q} {params.url:q}
             """
 
     rule download_bathymetry:
@@ -69,7 +69,7 @@ else:
             "../envs/shell.yaml"
         shell:
             """
-            curl -sSLo "{output}" "{params.url}"
+            curl -sSLo {output:q} {params.url:q}
             """
 
     rule clip_slope:
@@ -87,7 +87,7 @@ else:
             "../envs/default.yaml"
         shell:
             """
-            python "{input.script}" "{input.slope}" "{input.shapes}" "{output}" 2> "{log}"
+            python {input.script:q} {input.slope:q} {input.shapes:q} {output:q} 2> {log:q}
             """
 
     rule clip_bathymetry:
@@ -105,7 +105,7 @@ else:
             "../envs/default.yaml"
         shell:
             """
-            python "{input.script}" "{input.bathymetry}" "{input.shapes}" "{output}" 2> "{log}"
+            python {input.script:q} {input.bathymetry:q} {input.shapes:q} {output:q} 2> {log:q}
             """
 
 
@@ -127,7 +127,7 @@ rule download_globcover:
         "../envs/shell.yaml"
     shell:
         """
-        curl -sSLo "{output}" "{params.url}"
+        curl -sSLo {output:q} {params.url:q}
         """
 
 
@@ -147,7 +147,7 @@ rule unzip_globcover:
         "../envs/shell.yaml"
     shell:
         """
-        python "{input.script}" "{input.zipfile}" -f "{params.target_file}" -o "{output}" 2> "{log}"
+        python {input.script:q} {input.zipfile:q} -f {params.target_file:q} -o {output:q} 2> {log:q}
         """
 
 
@@ -166,7 +166,7 @@ rule clip_landcover:
         "../envs/default.yaml"
     shell:
         """
-        python "{input.script}" "{input.landcover}" "{input.shapes}" "{output}" 2> "{log}"
+        python {input.script:q} {input.landcover:q} {input.shapes:q} {output:q} 2> {log:q}
         """
 
 
@@ -188,7 +188,7 @@ rule download_ghsl:
         "../envs/shell.yaml"
     shell:
         """
-        curl -sSLo "{output}" "{params.url}"
+        curl -sSLo {output:q} {params.url:q}
         """
 
 
@@ -208,7 +208,7 @@ rule unzip_ghsl:
         "../envs/shell.yaml"
     shell:
         """
-        python "{input.script}" "{input.zipfile}" -f "{params.target_file}" -o "{output}" 2> "{log}"
+        python {input.script:q} {input.zipfile:q} -f {params.target_file:q} -o {output:q} 2> {log:q}
         """
 
 
@@ -227,7 +227,7 @@ rule clip_settlement:
         "../envs/default.yaml"
     shell:
         """
-        python "{input.script}" "{input.settlement}" "{input.shapes}" "{output}" 2> "{log}"
+        python {input.script:q} {input.settlement:q} {input.shapes:q} {output:q} 2> {log:q}
         """
 
 
@@ -252,5 +252,5 @@ rule rasterise_clip_wdpa:
         "../envs/default.yaml"
     shell:
         """
-        python "{input.script}" "{input.shapes}" "{input.reference_raster}" "{input.protected_areas}" "{output}" 2> "{log}"
+        python {input.script:q} {input.shapes:q} {input.reference_raster:q} {input.protected_areas:q} {output:q} 2> {log:q}
         """

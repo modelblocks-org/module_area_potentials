@@ -13,7 +13,7 @@ rule download_netherlands_shapes:
         "../../workflow/envs/shell.yaml"
     shell:
         """
-        curl -sSLo "{output}" "https://surfdrive.surf.nl/files/index.php/s/ey3RmiCbajp69oQ/download"
+        curl -sSLo {output:q} "https://zenodo.org/records/16684683/files/NLD.parquet"
         """
 
 
@@ -28,7 +28,7 @@ rule download_netherlands_protected_areas:
         "../../workflow/envs/shell.yaml"
     shell:
         """
-        curl -sSLo "{output}" "https://surfdrive.surf.nl/files/index.php/s/msuXQETNbCWawDh/download"
+        curl -sSLo {output:q} "https://zenodo.org/records/16684513/files/wdpa-nl-dropin.gdb.zip"
         """
 
 
@@ -46,7 +46,7 @@ rule unzip_netherlands_protected_areas:
         "../../workflow/envs/shell.yaml"
     shell:
         """
-        python "{input.script}" "{input.zipfile}" -t "results/integration_test/resources/user/" 2> "{log}"
+        python {input.script:q} {input.zipfile:q} -t "results/integration_test/resources/user/" 2> {log:q}
         """
 
 

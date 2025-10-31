@@ -10,8 +10,7 @@ import geopandas as gpd
 @click.argument("shapes_path", type=str)
 @click.argument("split_by", type=str)
 @click.argument("output_path", type=str)
-# @click.argument("output_list_of_subunits", type=str)
-def breakup_shape(shapes_path, split_by, output_path):  # , output_list_of_subunits):
+def breakup_shape(shapes_path, split_by, output_path):
     """Break subunits out of shape and save the resulting shapefiles.
 
     Args:
@@ -45,10 +44,6 @@ def breakup_shape(shapes_path, split_by, output_path):  # , output_list_of_subun
                 raise ValueError(f"No shapes found for {split_by}: {subunit}")
 
             sub_shapes.to_parquet(output_path / f"{subunit}.parquet")
-
-    # with open(output_list_of_subunits, "w") as f:
-    #     for subunit in subunits:
-    #         f.write(f"{subunit}\n")
 
 
 if __name__ == "__main__":
