@@ -4,6 +4,7 @@ from pathlib import Path
 
 import click
 import geopandas as gpd
+from _schemas import Shapes
 
 
 @click.command()
@@ -25,6 +26,7 @@ def breakup_shape(shapes_path, split_by, output_path):
     output_path = Path(output_path)
     output_path.mkdir(parents=True, exist_ok=True)
     shapes = gpd.read_parquet(shapes_path)
+    shapes = Shapes.validate(shapes)
 
     # Print rows where geometry is empty
     if shapes.geometry.is_empty.any():
