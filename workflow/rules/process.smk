@@ -106,7 +106,8 @@ rule plot_aggregated_area_potential:
         rules.aggregate_area_potential.output.aggregated_area_potential,
     output:
         report(
-            "<results>/{shape}/area_potential_{tech}.png", category="area_potential_plot"
+            "<results>/{shape}/area_potential_{tech}.png",
+            category="area_potential_plot",
         ),
     log:
         "<logs>/{shape}/plot_aggregated_area_potential_{tech}.log",
