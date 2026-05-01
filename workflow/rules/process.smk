@@ -5,11 +5,11 @@ checkpoint breakup_shape:
         split_by=config["split_by"],
     input:
         script=workflow.source_path("../scripts/breakup_shape.py"),
-        shapes="resources/user/shapes/{shape}.parquet",
+        shapes="<resources>/user/shapes/{shape}.parquet",
     output:
-        directory("resources/automatic/shapes/{shape}"),
+        directory("<resources>/automatic/shapes/{shape}"),
     log:
-        "logs/{shape}/breakup_shape.log",
+        "<logs>/{shape}/breakup_shape.log",
     conda:
         "../envs/default.yaml"
     shell:
@@ -34,13 +34,13 @@ rule prepare_resampled_inputs:
         bathymetry_path=rules.clip_bathymetry.output,
         protected_area_path=rules.rasterise_clip_wdpa.output,
     output:
-        resampled_input="resources/automatic/resampled_inputs/{shape}/{subunit}.nc",
+        resampled_input="<resources>/automatic/resampled_inputs/{shape}/{subunit}.nc",
         plot=report(
-            "resources/automatic/resampled_inputs/{shape}/{subunit}.png",
+            "<resources>/automatic/resampled_inputs/{shape}/{subunit}.png",
             category="resampled_input",
         ),
     log:
-        "logs/{shape}/{subunit}/prepare_resampled_inputs.log",
+        "<logs>/{shape}/{subunit}/prepare_resampled_inputs.log",
     conda:
         "../envs/default.yaml"
     shell:
@@ -67,13 +67,13 @@ rule area_potential:
         shapes=rules.breakup_shape.output,
         resampled_path=rules.prepare_resampled_inputs.output.resampled_input,
     output:
-        area_potential="results/{shape}/{subunit}/area_potential_{tech}.tif",
+        area_potential="<results>/{shape}/{subunit}/area_potential_{tech}.tif",
         plot=report(
-            "results/{shape}/{subunit}/area_potential_{tech}.png",
+            "<results>/{shape}/{subunit}/area_potential_{tech}.png",
             category="area_potential",
         ),
     log:
-        "logs/{shape}/{subunit}/area_potential_{tech}.log",
+        "<logs>/{shape}/{subunit}/area_potential_{tech}.log",
     conda:
         "../envs/default.yaml"
     shell:
@@ -88,9 +88,9 @@ rule aggregate_area_potential:
     input:
         get_subunits,
     output:
-        aggregated_area_potential="results/{shape}/area_potential_{tech}.tif",
+        aggregated_area_potential="<results>/{shape}/area_potential_{tech}.tif",
     log:
-        "logs/{shape}/aggregate_area_potential_{tech}.log",
+        "<logs>/{shape}/aggregate_area_potential_{tech}.log",
     conda:
         "../envs/default.yaml"
     shell:
@@ -106,10 +106,10 @@ rule plot_aggregated_area_potential:
         rules.aggregate_area_potential.output.aggregated_area_potential,
     output:
         report(
-            "results/{shape}/area_potential_{tech}.png", category="area_potential_plot"
+            "<results>/{shape}/area_potential_{tech}.png", category="area_potential_plot"
         ),
     log:
-        "logs/{shape}/plot_aggregated_area_potential_{tech}.log",
+        "<logs>/{shape}/plot_aggregated_area_potential_{tech}.log",
     conda:
         "../envs/default.yaml"
     script:
@@ -120,23 +120,23 @@ rule area_potential_report:
     message:
         "Generate an overview report of the area potential for all techs in shapes {wildcards.shape}."
     input:
-        shapes="resources/user/shapes/{shape}.parquet",
+        shapes="<resources>/user/shapes/{shape}.parquet",
         area_potentials=expand(
-            "results/{{shape}}/area_potential_{tech}.tif",
+            "<results>/{{shape}}/area_potential_{tech}.tif",
             tech=config["techs"].keys(),
         ),
         area_potential_plots=expand(
-            "results/{{shape}}/area_potential_{tech}.png",
+            "<results>/{{shape}}/area_potential_{tech}.png",
             tech=config["techs"].keys(),
         ),
     output:
-        csv="results/{shape}/area_potential_report.csv",
+        csv="<results>/{shape}/area_potential_report.csv",
         html=report(
-            "results/{shape}/area_potential_report.html",
+            "<results>/{shape}/area_potential_report.html",
             category="area_potential_report_table",
         ),
     log:
-        "logs/{shape}/area_potential_report.log",
+        "<logs>/{shape}/area_potential_report.log",
     conda:
         "../envs/default.yaml"
     script:
