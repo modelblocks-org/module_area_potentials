@@ -5,7 +5,7 @@ checkpoint breakup_shape:
         split_by=config["split_by"],
     input:
         script=workflow.source_path("../scripts/breakup_shape.py"),
-        shapes="<resources>/user/shapes/{shape}.parquet",
+        shapes="<shapes>",
     output:
         directory("<resources>/automatic/shapes/{shape}"),
     log:
@@ -88,7 +88,7 @@ rule aggregate_area_potential:
     input:
         get_subunits,
     output:
-        aggregated_area_potential="<results>/{shape}/area_potential_{tech}.tif",
+        aggregated_area_potential="<area_potential>",
     log:
         "<logs>/{shape}/aggregate_area_potential_{tech}.log",
     conda:
@@ -120,10 +120,11 @@ rule area_potential_report:
     message:
         "Generate an overview report of the area potential for all techs in shapes {wildcards.shape}."
     input:
-        shapes="<resources>/user/shapes/{shape}.parquet",
+        shapes="<shapes>",
         area_potentials=expand(
-            "<results>/{{shape}}/area_potential_{tech}.tif",
+            workflow.pathvars.apply("<area_potential>"),
             tech=config["techs"].keys(),
+            allow_missing=True,
         ),
         area_potential_plots=expand(
             "<results>/{{shape}}/area_potential_{tech}.png",
