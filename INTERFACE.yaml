@@ -26,5 +26,4 @@ pathvars:
       description: "Area potential GeoTIFF raster for the specified technology across all subunits."
 wildcards:
   shape: "Name of the shape to be processed, e.g., 'world', 'europe', 'MEX'."
-  subunit: "Name of a subunit from within the shape, e.g 'IRL' for Ireland within 'europe'."
   tech: "Name of the technology, e.g., 'pv_rooftop' or 'wind_offshore'. Available technologies are defined in the module configuration."
