@@ -1,12 +1,14 @@
 # Changes here will be overwritten by Copier
-# DO NOT MANUALLY MODIFY THIS FILE
+# !!!!! DO NOT MANUALLY MODIFY THIS FILE !!!!!
 _commit: latest
 _src_path: https://github.com/calliope-project/data-module-template
 author_email: s.pfenninger@tudelft.nl
 author_family_name: Pfenninger-Lee
 author_given_name: Stefan
-github_org: calliope-project
+github_org: modelblocks-org
 license: Apache-2.0
-module_description: ''
+module_description: This module performs geospatial analyses to determine the available
+    land area for specific technologies, on a by-pixel basis and aggregated to given
+    geographic boundaries.
 module_long_name: Area potentials
 module_short_name: module_area_potentials
