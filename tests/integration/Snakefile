@@ -3,14 +3,14 @@ configfile: workflow.source_path("./test_config.yaml")
 
 
 rule download_netherlands_shapes:
-    message:
-        "Download and unzip the Netherlands shapes."
     output:
         "results/integration_test/resources/user/shapes/NLD.parquet",
     log:
         "results/integration_test/logs/download_netherlands_shapes.log",
     conda:
         "../../workflow/envs/shell.yaml"
+    message:
+        "Download and unzip the Netherlands shapes."
     shell:
         """
         curl -sSLo {output:q} "https://zenodo.org/records/16684683/files/NLD.parquet"
@@ -18,14 +18,14 @@ rule download_netherlands_shapes:
 
 
 rule download_netherlands_protected_areas:
-    message:
-        "Download a dummy drop-in dataset for Netherlands protected areas (not based on WDPA)."
     output:
         "results/integration_test/resources/user/wdpa.gdb.zip",
     log:
         "results/integration_test/logs/download_netherlands_protected_areas.log",
     conda:
         "../../workflow/envs/shell.yaml"
+    message:
+        "Download a dummy drop-in dataset for Netherlands protected areas (not based on WDPA)."
     shell:
         """
         curl -sSLo {output:q} "https://zenodo.org/records/16684513/files/wdpa-nl-dropin.gdb.zip"
@@ -33,8 +33,6 @@ rule download_netherlands_protected_areas:
 
 
 rule unzip_netherlands_protected_areas:
-    message:
-        "Download protected areas data."
     input:
         script=workflow.source_path("../../workflow/scripts/unzip_like.py"),
         zipfile=rules.download_netherlands_protected_areas.output,
@@ -44,9 +42,11 @@ rule unzip_netherlands_protected_areas:
         "results/integration_test/logs/unzip_netherlands_protected_areas.log",
     conda:
         "../../workflow/envs/shell.yaml"
+    message:
+        "Download protected areas data."
     shell:
         """
-        python {input.script:q} {input.zipfile:q} -t "results/integration_test/resources/user/" 2> {log:q}
+        python {input.script:q} {input.zipfile:q} -t "results/integration_test/resources/user/" 2>{log:q}
         """
 
 
@@ -68,10 +68,10 @@ use rule * from module_area_potentials as module_area_potentials_*
 
 # Request something from the module
 rule all:
-    message:
-        "Run the module for the Netherlands shapes."
     default_target: True
     input:
         "results/integration_test/resources/user/shapes/NLD.parquet",
         "results/integration_test/resources/user/wdpa.gdb",
         "results/integration_test/results/NLD/area_potential_report.html",
+    message:
+        "Run the module for the Netherlands shapes."
