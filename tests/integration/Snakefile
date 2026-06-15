@@ -6,9 +6,9 @@ rule download_netherlands_shapes:
     message:
         "Download and unzip the Netherlands shapes."
     output:
-        "results/integration_test/resources/user/shapes/NLD.parquet",
+        "resources/inputs/shapes/NLD.parquet",
     log:
-        "results/integration_test/logs/download_netherlands_shapes.log",
+        "logs/download_netherlands_shapes.log",
     conda:
         "../../workflow/envs/shell.yaml"
     shell:
@@ -21,9 +21,9 @@ rule download_netherlands_protected_areas:
     message:
         "Download a dummy drop-in dataset for Netherlands protected areas (not based on WDPA)."
     output:
-        "results/integration_test/resources/user/wdpa.gdb.zip",
+        "resources/inputs/wdpa.gdb.zip",
     log:
-        "results/integration_test/logs/download_netherlands_protected_areas.log",
+        "logs/download_netherlands_protected_areas.log",
     conda:
         "../../workflow/envs/shell.yaml"
     shell:
@@ -39,27 +39,36 @@ rule unzip_netherlands_protected_areas:
         script=workflow.source_path("../../workflow/scripts/unzip_like.py"),
         zipfile=rules.download_netherlands_protected_areas.output,
     output:
-        directory("results/integration_test/resources/user/wdpa.gdb"),
+        directory("resources/inputs/wdpa.gdb"),
     log:
-        "results/integration_test/logs/unzip_netherlands_protected_areas.log",
+        "logs/unzip_netherlands_protected_areas.log",
     conda:
         "../../workflow/envs/shell.yaml"
     shell:
         """
-        python {input.script:q} {input.zipfile:q} -t "results/integration_test/resources/user/" 2> {log:q}
+        python {input.script:q} {input.zipfile:q} -t "resources/inputs/" 2> {log:q}
         """
 
 
 # Import the module and configure it.
 # `snakefile:` specifies the module. It can use file paths and special github(...) / gitlab(...) markers
-# `prefix:` re-routes all input/output paths of the module, helping to avoid file conflicts.
+# `config`: specifies the module configuration.
+# `pathvars:` helps you re-wire where the module places files.
 module module_area_potentials:
     snakefile:
         "../../workflow/Snakefile"
     config:
         config["module_area_potentials"]
-    prefix:
-        "results/integration_test/"
+    pathvars:
+        # Redirect specific user resources (inputs)
+        shapes="resources/inputs/shapes/{shape}.parquet",
+        wdpa="resources/inputs/wdpa.gdb",
+        # Redirect specific module results (outputs)
+        area_potential="results/outputs/{shape}/area_potential_{tech}.tif",
+        # Redirect module intermediate files
+        logs="resources/module/logs",
+        resources="resources/module/resources",
+        results="resources/module/results",
 
 
 # rename all module rules with a prefix, to avoid naming conflicts.
@@ -72,6 +81,5 @@ rule all:
         "Run the module for the Netherlands shapes."
     default_target: True
     input:
-        "results/integration_test/resources/user/shapes/NLD.parquet",
-        "results/integration_test/resources/user/wdpa.gdb",
-        "results/integration_test/results/NLD/area_potential_report.html",
+        # The report file requires all area potential output files
+        "resources/module/results/NLD/area_potential_report.html",

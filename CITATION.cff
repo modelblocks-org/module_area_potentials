@@ -3,7 +3,7 @@
 # https://citation-file-format.github.io/
 cff-version: 1.2.0
 message: If you use this software or data produced by it, please cite it using the metadata from this file.
-title: "clio - module_area_potentials: Area potentials"
+title: "Modelblocks - module_area_potentials: Area potentials"
 repository: "https://github.com/calliope-project/module_area_potentials"
 license: Apache-2.0
 authors:

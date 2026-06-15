@@ -12,6 +12,7 @@ repos:
       # Repo quality
       - id: check-added-large-files
         args: [--enforce-all]
+        exclude: ^pixi\.lock$
       - id: forbid-submodules
       - id: check-case-conflict
       - id: check-illegal-windows-names
@@ -32,7 +33,7 @@ repos:
 
   # Snakemake file formatting
   - repo: https://github.com/snakemake/snakefmt
-    rev: v0.10.2
+    rev: v0.11.4
     hooks:
       - id: snakefmt
 
@@ -44,4 +45,4 @@ repos:
         files: .*\.(py|smk|md)$|^Snakefile$
 
 ci:  # https://pre-commit.ci/
-  autoupdate_schedule: monthly
+  autoupdate_schedule: quarterly

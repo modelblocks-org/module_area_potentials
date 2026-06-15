@@ -2,7 +2,18 @@ import yaml
 
 from snakemake.utils import min_version, validate
 
-min_version("8.10")
+min_version("9.19")
+
+
+# !!!!! IMPORTANT !!!!!
+# Define pathvars for all user resource files and result files
+# This allows users to re-wire how the module is used in their workflow with ease.
+pathvars:
+    # User resources
+    shapes="<resources>/user/shapes/{shape}.parquet",
+    wdpa="<resources>/user/wdpa.gdb",
+    # Module results
+    area_potential="<results>/{shape}/area_potential_{tech}.tif",
 
 
 # Load the example configuration. This will be overridden by users.
@@ -41,7 +52,7 @@ rule all:
     output:
         "INVALID",
     log:
-        stderr="logs/all.stderr",
+        stderr="<logs>/all.stderr",
     conda:
         "envs/shell.yaml"
     shell:
