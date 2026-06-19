@@ -8,7 +8,7 @@
   ],
   "contributorsSortAlphabetically": true,
   "contributorsPerLine": 7,
-  "linkToUsage": true
+  "linkToUsage": false,
   "commit": false,
   "commitConvention": "none",
   "imageSize": 100,
