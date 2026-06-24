@@ -10,7 +10,7 @@ rule download_netherlands_shapes:
     log:
         "logs/download_netherlands_shapes.log",
     conda:
-        "../../workflow/envs/shell.yaml"
+        "../../workflow/envs/module.yaml"
     shell:
         """
         curl -sSLo {output:q} "https://zenodo.org/records/16684683/files/NLD.parquet"
@@ -25,7 +25,7 @@ rule download_netherlands_protected_areas:
     log:
         "logs/download_netherlands_protected_areas.log",
     conda:
-        "../../workflow/envs/shell.yaml"
+        "../../workflow/envs/module.yaml"
     shell:
         """
         curl -sSLo {output:q} "https://zenodo.org/records/16684513/files/wdpa-nl-dropin.gdb.zip"
@@ -43,7 +43,7 @@ rule unzip_netherlands_protected_areas:
     log:
         "logs/unzip_netherlands_protected_areas.log",
     conda:
-        "../../workflow/envs/shell.yaml"
+        "../../workflow/envs/module.yaml"
     shell:
         """
         python {input.script:q} {input.zipfile:q} -t "resources/inputs/" 2> {log:q}

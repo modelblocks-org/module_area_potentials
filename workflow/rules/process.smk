@@ -11,7 +11,7 @@ checkpoint breakup_shape:
     log:
         "<logs>/{shape}/breakup_shape.log",
     conda:
-        "../envs/default.yaml"
+        "../envs/module.yaml"
     shell:
         """
         python {input.script:q} {input.shapes:q} {params.split_by:q} {output:q} 2> {log:q}
@@ -42,7 +42,7 @@ rule prepare_resampled_inputs:
     log:
         "<logs>/{shape}/{subunit}/prepare_resampled_inputs.log",
     conda:
-        "../envs/default.yaml"
+        "../envs/module.yaml"
     shell:
         """
         python {input.script:q} \
@@ -75,7 +75,7 @@ rule area_potential:
     log:
         "<logs>/{shape}/{subunit}/area_potential_{tech}.log",
     conda:
-        "../envs/default.yaml"
+        "../envs/module.yaml"
     shell:
         """
         python {input.script:q} "{input.shapes}/{wildcards.subunit}.parquet" {input.resampled_path:q} {params.config:q} {params.buffer_crs:q} {output.area_potential:q} {output.plot:q} --override_config={params.subunit_override_config:q} 2> {log:q}
@@ -92,7 +92,7 @@ rule aggregate_area_potential:
     log:
         "<logs>/{shape}/aggregate_area_potential_{tech}.log",
     conda:
-        "../envs/default.yaml"
+        "../envs/module.yaml"
     shell:
         """
         gdalwarp --config GDAL_CACHEMAX 3000 -wm 3000 -of GTiff -co COMPRESS=LZW {input} {output.aggregated_area_potential:q}
@@ -112,7 +112,7 @@ rule plot_aggregated_area_potential:
     log:
         "<logs>/{shape}/plot_aggregated_area_potential_{tech}.log",
     conda:
-        "../envs/default.yaml"
+        "../envs/module.yaml"
     script:
         "../scripts/tif_to_png.py"
 
@@ -140,6 +140,6 @@ rule area_potential_report:
     log:
         "<logs>/{shape}/area_potential_report.log",
     conda:
-        "../envs/default.yaml"
+        "../envs/module.yaml"
     script:
         "../scripts/report.py"

@@ -52,7 +52,7 @@ else:
         log:
             "<logs>/download_slope.log",
         conda:
-            "../envs/shell.yaml"
+            "../envs/module.yaml"
         localrule: True
         shell:
             """
@@ -69,7 +69,7 @@ else:
         log:
             "<logs>/download_bathymetry.log",
         conda:
-            "../envs/shell.yaml"
+            "../envs/module.yaml"
         localrule: True
         shell:
             """
@@ -88,7 +88,7 @@ else:
         log:
             "<logs>/{shape}/clip_slope.log",
         conda:
-            "../envs/default.yaml"
+            "../envs/module.yaml"
         shell:
             """
             python {input.script:q} {input.slope:q} {input.shapes:q} {output:q} 2> {log:q}
@@ -106,7 +106,7 @@ else:
         log:
             "<logs>/{shape}/clip_bathymetry.log",
         conda:
-            "../envs/default.yaml"
+            "../envs/module.yaml"
         shell:
             """
             python {input.script:q} {input.bathymetry:q} {input.shapes:q} {output:q} 2> {log:q}
@@ -128,7 +128,7 @@ rule download_globcover:
     log:
         "<logs>/download_globcover.log",
     conda:
-        "../envs/shell.yaml"
+        "../envs/module.yaml"
     localrule: True
     shell:
         """
@@ -149,7 +149,7 @@ rule unzip_globcover:
     log:
         "<logs>/unzip_globcover.log",
     conda:
-        "../envs/shell.yaml"
+        "../envs/module.yaml"
     shell:
         """
         python {input.script:q} {input.zipfile:q} -f {params.target_file:q} -o {output:q} 2> {log:q}
@@ -168,7 +168,7 @@ rule clip_landcover:
     log:
         "<logs>/{shape}/clip_landcover.log",
     conda:
-        "../envs/default.yaml"
+        "../envs/module.yaml"
     shell:
         """
         python {input.script:q} {input.landcover:q} {input.shapes:q} {output:q} 2> {log:q}
@@ -190,7 +190,7 @@ rule download_ghsl:
     log:
         "<logs>/download_ghsl.log",
     conda:
-        "../envs/shell.yaml"
+        "../envs/module.yaml"
     localrule: True
     shell:
         """
@@ -211,7 +211,7 @@ rule unzip_ghsl:
     log:
         "<logs>/unzip_ghsl.log",
     conda:
-        "../envs/shell.yaml"
+        "../envs/module.yaml"
     shell:
         """
         python {input.script:q} {input.zipfile:q} -f {params.target_file:q} -o {output:q} 2> {log:q}
@@ -230,7 +230,7 @@ rule clip_settlement:
     log:
         "<logs>/{shape}/clip_settlement.log",
     conda:
-        "../envs/default.yaml"
+        "../envs/module.yaml"
     shell:
         """
         python {input.script:q} {input.settlement:q} {input.shapes:q} {output:q} 2> {log:q}
@@ -255,7 +255,7 @@ rule rasterise_clip_wdpa:
     log:
         "<logs>/{shape}/clip_wdpa.log",
     conda:
-        "../envs/default.yaml"
+        "../envs/module.yaml"
     shell:
         """
         python {input.script:q} {input.shapes:q} {input.reference_raster:q} {input.protected_areas:q} {output:q} 2> {log:q}
