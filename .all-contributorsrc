@@ -1,0 +1,56 @@
+{
+  "projectName": "module_area_potentials",
+  "projectOwner": "modelblocks-org",
+  "repoType": "github",
+  "repoHost": "https://github.com",
+  "files": [
+    "README.md"
+  ],
+  "contributorsSortAlphabetically": true,
+  "contributorsPerLine": 7,
+  "linkToUsage": false,
+  "commit": false,
+  "commitConvention": "none",
+  "imageSize": 100,
+  "contributors": [
+    {
+      "login": "sjpfenninger",
+      "name": "Stefan Pfenninger-Lee",
+      "avatar_url": "https://avatars.githubusercontent.com/u/141709?v=4",
+      "profile": "https://github.com/sjpfenninger",
+      "contributions": [
+        "code",
+        "doc",
+        "ideas"
+      ]
+    },
+    {
+      "login": "LinhHo",
+      "name": "Linh Ho",
+      "avatar_url": "https://avatars.githubusercontent.com/u/45103089?v=4",
+      "profile": "https://github.com/LinhHo",
+      "contributions": [
+        "code",
+        "ideas"
+      ]
+    },
+    {
+      "login": "irm-codebase",
+      "name": "Ivan Ruiz Manuel",
+      "avatar_url": "https://avatars.githubusercontent.com/u/72193617?v=4",
+      "profile": "https://orcid.org/0000-0003-2288-6423",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "jnnr",
+      "name": "Jann Launer",
+      "avatar_url": "https://avatars.githubusercontent.com/u/32454596?v=4",
+      "profile": "https://github.com/jnnr",
+      "contributions": [
+        "ideas"
+      ]
+    }
+  ]
+}
