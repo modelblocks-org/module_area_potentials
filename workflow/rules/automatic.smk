@@ -7,10 +7,6 @@ if config.get("tiny_files", False):
     ##
 
     rule clip_slope:
-        message:
-            "Download slope data covering the bounds of the input shapefile."
-        params:
-            cog_url=internal["resources"]["automatic"]["slope"],
         input:
             vector="<shapes>",
         output:
@@ -18,14 +14,14 @@ if config.get("tiny_files", False):
         log:
             "<logs>/{shape}/clip_slope.log",
         localrule: True
+        params:
+            cog_url=internal["resources"]["automatic"]["slope"],
+        message:
+            "Download slope data covering the bounds of the input shapefile."
         wrapper:
             "v7.2.0/geo/rasterio/clip-geotiff"
 
     rule clip_bathymetry:
-        message:
-            "Download bathymetry data covering the bounds of the input shapefile."
-        params:
-            cog_url=internal["resources"]["automatic"]["bathymetry"],
         input:
             vector="<shapes>",
         output:
@@ -33,6 +29,10 @@ if config.get("tiny_files", False):
         log:
             "<logs>/{shape}/clip_bathymetry.log",
         localrule: True
+        params:
+            cog_url=internal["resources"]["automatic"]["bathymetry"],
+        message:
+            "Download bathymetry data covering the bounds of the input shapefile."
         wrapper:
             "v7.2.0/geo/rasterio/clip-geotiff"
 
@@ -43,42 +43,40 @@ else:
     ##
 
     rule download_slope:
-        message:
-            "Download global slope data."
-        params:
-            url=internal["resources"]["automatic"]["slope"],
         output:
             path="<resources>/automatic/global/slope.tif",
         log:
             "<logs>/download_slope.log",
+        localrule: True
         conda:
             "../envs/module.yaml"
-        localrule: True
+        params:
+            url=internal["resources"]["automatic"]["slope"],
+        message:
+            "Download global slope data."
         shell:
             """
             curl -sSLo {output:q} {params.url:q}
             """
 
     rule download_bathymetry:
-        message:
-            "Download global bathymetry data."
-        params:
-            url=internal["resources"]["automatic"]["bathymetry"],
         output:
             path="<resources>/automatic/global/bathymetry.tif",
         log:
             "<logs>/download_bathymetry.log",
+        localrule: True
         conda:
             "../envs/module.yaml"
-        localrule: True
+        params:
+            url=internal["resources"]["automatic"]["bathymetry"],
+        message:
+            "Download global bathymetry data."
         shell:
             """
             curl -sSLo {output:q} {params.url:q}
             """
 
     rule clip_slope:
-        message:
-            "Cut slope data to the bounds of the input shapefile."
         input:
             script=workflow.source_path("../scripts/clip_raster.py"),
             shapes="<shapes>",
@@ -89,14 +87,14 @@ else:
             "<logs>/{shape}/clip_slope.log",
         conda:
             "../envs/module.yaml"
+        message:
+            "Cut slope data to the bounds of the input shapefile."
         shell:
             """
-            python {input.script:q} {input.slope:q} {input.shapes:q} {output:q} 2> {log:q}
+            python {input.script:q} {input.slope:q} {input.shapes:q} {output:q} 2>{log:q}
             """
 
     rule clip_bathymetry:
-        message:
-            "Cut bathymetry data to the bounds of the input shapefile."
         input:
             script=workflow.source_path("../scripts/clip_raster.py"),
             shapes="<shapes>",
@@ -107,9 +105,11 @@ else:
             "<logs>/{shape}/clip_bathymetry.log",
         conda:
             "../envs/module.yaml"
+        message:
+            "Cut bathymetry data to the bounds of the input shapefile."
         shell:
             """
-            python {input.script:q} {input.bathymetry:q} {input.shapes:q} {output:q} 2> {log:q}
+            python {input.script:q} {input.bathymetry:q} {input.shapes:q} {output:q} 2>{log:q}
             """
 
 
@@ -119,17 +119,17 @@ else:
 
 
 rule download_globcover:
-    message:
-        "Download the GlobCover land cover data (~380 MB)."
-    params:
-        url=internal["resources"]["automatic"]["globcover"],
     output:
         "<resources>/automatic/global/globcover.zip",
     log:
         "<logs>/download_globcover.log",
+    localrule: True
     conda:
         "../envs/module.yaml"
-    localrule: True
+    params:
+        url=internal["resources"]["automatic"]["globcover"],
+    message:
+        "Download the GlobCover land cover data (~380 MB)."
     shell:
         """
         curl -sSLo {output:q} {params.url:q}
@@ -137,10 +137,6 @@ rule download_globcover:
 
 
 rule unzip_globcover:
-    message:
-        "Unzip the relevant TIF files from the GlobCover zip file."
-    params:
-        target_file=internal["resources"]["automatic"]["globcover_landcover_tif"],
     input:
         script=workflow.source_path("../scripts/unzip_like.py"),
         zipfile=rules.download_globcover.output,
@@ -150,15 +146,17 @@ rule unzip_globcover:
         "<logs>/unzip_globcover.log",
     conda:
         "../envs/module.yaml"
+    params:
+        target_file=internal["resources"]["automatic"]["globcover_landcover_tif"],
+    message:
+        "Unzip the relevant TIF files from the GlobCover zip file."
     shell:
         """
-        python {input.script:q} {input.zipfile:q} -f {params.target_file:q} -o {output:q} 2> {log:q}
+        python {input.script:q} {input.zipfile:q} -f {params.target_file:q} -o {output:q} 2>{log:q}
         """
 
 
 rule clip_landcover:
-    message:
-        "Cut land cover data to the bounds of the input shapefile."
     input:
         script=workflow.source_path("../scripts/clip_raster.py"),
         shapes="<shapes>",
@@ -169,9 +167,11 @@ rule clip_landcover:
         "<logs>/{shape}/clip_landcover.log",
     conda:
         "../envs/module.yaml"
+    message:
+        "Cut land cover data to the bounds of the input shapefile."
     shell:
         """
-        python {input.script:q} {input.landcover:q} {input.shapes:q} {output:q} 2> {log:q}
+        python {input.script:q} {input.landcover:q} {input.shapes:q} {output:q} 2>{log:q}
         """
 
 
@@ -181,17 +181,17 @@ rule clip_landcover:
 
 
 rule download_ghsl:
-    message:
-        "Download the GHSL (Global Human Settlement Layer) built-up surface data."
-    params:
-        url=internal["resources"]["automatic"]["ghsl"],
     output:
         "<resources>/automatic/global/ghsl_built_s.zip",
     log:
         "<logs>/download_ghsl.log",
+    localrule: True
     conda:
         "../envs/module.yaml"
-    localrule: True
+    params:
+        url=internal["resources"]["automatic"]["ghsl"],
+    message:
+        "Download the GHSL (Global Human Settlement Layer) built-up surface data."
     shell:
         """
         curl -sSLo {output:q} {params.url:q}
@@ -199,10 +199,6 @@ rule download_ghsl:
 
 
 rule unzip_ghsl:
-    message:
-        "Unzip the relevant TIF file from the GHSL data."
-    params:
-        target_file=internal["resources"]["automatic"]["ghsl_tif"],
     input:
         script=workflow.source_path("../scripts/unzip_like.py"),
         zipfile=rules.download_ghsl.output,
@@ -212,15 +208,17 @@ rule unzip_ghsl:
         "<logs>/unzip_ghsl.log",
     conda:
         "../envs/module.yaml"
+    params:
+        target_file=internal["resources"]["automatic"]["ghsl_tif"],
+    message:
+        "Unzip the relevant TIF file from the GHSL data."
     shell:
         """
-        python {input.script:q} {input.zipfile:q} -f {params.target_file:q} -o {output:q} 2> {log:q}
+        python {input.script:q} {input.zipfile:q} -f {params.target_file:q} -o {output:q} 2>{log:q}
         """
 
 
 rule clip_settlement:
-    message:
-        "Cut settlement data to the bounds of the input shapefile."
     input:
         script=workflow.source_path("../scripts/clip_raster.py"),
         shapes="<shapes>",
@@ -231,9 +229,11 @@ rule clip_settlement:
         "<logs>/{shape}/clip_settlement.log",
     conda:
         "../envs/module.yaml"
+    message:
+        "Cut settlement data to the bounds of the input shapefile."
     shell:
         """
-        python {input.script:q} {input.settlement:q} {input.shapes:q} {output:q} 2> {log:q}
+        python {input.script:q} {input.settlement:q} {input.shapes:q} {output:q} 2>{log:q}
         """
 
 
@@ -243,8 +243,6 @@ rule clip_settlement:
 
 
 rule rasterise_clip_wdpa:
-    message:
-        "Rasterise and cut WDPA data to the bounds of the input shapefile, using the landcover raster as reference for the rasterisation."
     input:
         script=workflow.source_path("../scripts/clip_and_rasterise_polys.py"),
         shapes="<shapes>",
@@ -256,7 +254,9 @@ rule rasterise_clip_wdpa:
         "<logs>/{shape}/clip_wdpa.log",
     conda:
         "../envs/module.yaml"
+    message:
+        "Rasterise and cut WDPA data to the bounds of the input shapefile, using the landcover raster as reference for the rasterisation."
     shell:
         """
-        python {input.script:q} {input.shapes:q} {input.reference_raster:q} {input.protected_areas:q} {output:q} 2> {log:q}
+        python {input.script:q} {input.shapes:q} {input.reference_raster:q} {input.protected_areas:q} {output:q} 2>{log:q}
         """
