@@ -3,10 +3,10 @@
 import sys
 
 import geopandas as gpd
+import numpy as np
 import pandas as pd
-import rioxarray as rxr
-import xarray as xr
-from resample import _rasterize_regions
+import rasterio
+from rasterio.features import rasterize
 
 
 def report(shapes, area_potentials, csv_path, html_path):
@@ -14,33 +14,49 @@ def report(shapes, area_potentials, csv_path, html_path):
     shapes = gpd.read_parquet(shapes)
 
     print("Generating reference raster and rasterizing regions...")
-    reference_raster = rxr.open_rasterio(area_potentials[0])
-    regions = xr.DataArray(
-        _rasterize_regions(shapes, reference_raster),
-        dims=("y", "x"),
-        coords={"y": reference_raster.y, "x": reference_raster.x},
-    )
-    # regions = xr.DataArray(("y", "x"), _rasterize_regions(shapes, reference_raster))
-    del reference_raster
+    with rasterio.open(area_potentials[0]) as src:
+        reference_shape = (src.height, src.width)
+        reference_transform = src.transform
 
-    # Collect the area potentials from the input files
-    # Group the area potentials by regions, sum them up, and collect the resulting Series
-    # into a DataFrame, where each column corresponds to a technology's area potential,
-    # and the index corresponds to the regions.
-    dataframes = []
+    # Burn each shape's row position once as int32 (-1 = no region): the
+    # bincount aggregation below then replaces a full groupby factorisation
+    # of the region raster for every technology file.
+    region_ids = rasterize(
+        zip(shapes.geometry, range(len(shapes))),
+        out_shape=reference_shape,
+        transform=reference_transform,
+        fill=-1,
+        dtype=np.int32,
+    ).ravel()
+    valid = region_ids >= 0
+    region_ids = region_ids[valid]
+    pixel_counts = np.bincount(region_ids, minlength=len(shapes))
+
+    # Sum each technology's area potential per region into a DataFrame column,
+    # skipping nodata/NaN pixels (as the previous groupby-sum did).
+    columns = {}
     for area_potential_file in area_potentials:
         print(f"Processing area potential file: {area_potential_file}")
-        da_area_potential = (
-            rxr.open_rasterio(area_potential_file, mask_and_scale=True)
-            .squeeze()
-            .drop_vars(["band", "spatial_ref"])
+        with rasterio.open(area_potential_file) as src:
+            # All technology mosaics must lie on the same grid, otherwise the
+            # flat region index would silently aggregate the wrong pixels.
+            assert (src.height, src.width) == reference_shape, (
+                f"Raster shape of {area_potential_file} does not match {area_potentials[0]}"
+            )
+            assert src.transform == reference_transform, (
+                f"Raster transform of {area_potential_file} does not match {area_potentials[0]}"
+            )
+            values = src.read(1, masked=True).ravel()[valid]
+        weights = np.nan_to_num(values.filled(np.nan))
+        columns[area_potential_file] = np.bincount(
+            region_ids, weights=weights, minlength=len(shapes)
         )
-        df_ = da_area_potential.groupby(regions).sum().to_pandas()
-        df_.name = area_potential_file
-        dataframes.append(df_)
-        del da_area_potential
 
-    df = pd.concat(dataframes, axis=1)
+    # Regions owning no pixel were never part of the groupby-based report;
+    # keep them out.
+    df = pd.DataFrame(columns, index=shapes.index.astype(float))
+    df = df[pixel_counts > 0].sort_index()
+    df.index.name = "group"
 
     # Add metadata columns from shapes in front of the data columns
     df.insert(0, "parent_name", shapes["parent_name"])
