@@ -89,7 +89,7 @@ rule aggregate_area_potential:
         "Aggregate area potential for the tech {wildcards.tech} in {wildcards.shape}."
     shell:
         """
-        gdalwarp --config GDAL_CACHEMAX 3000 -wm 3000 -of GTiff -co COMPRESS=LZW {input} {output.aggregated_area_potential:q} >{log:q} 2>&1
+        gdalwarp --config GDAL_CACHEMAX 3000 -wm 3000 -multi -wo NUM_THREADS=ALL_CPUS -of GTiff -co COMPRESS=LZW -co PREDICTOR=3 {input} {output.aggregated_area_potential:q} >{log:q} 2>&1
         """
 
 

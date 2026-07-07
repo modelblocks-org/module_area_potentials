@@ -103,7 +103,11 @@ def _parsed_config(config, override):
 
 
 def sequential_area_potential(ds, config):
-    """Oracle mirroring the current sequential where-chain (without buffering)."""
+    """Oracle mirroring the current sequential where-chain (without buffering).
+
+    The CLI writes float32 rasters, so oracle expectations are cast to float32
+    before comparison — bit-exactness is required at the output granularity.
+    """
     potential = ds[config["initial_area"]].squeeze(drop=True)
     binary_layers = config.get("binary_layers", {})
     for layer, value in binary_layers.items():
@@ -190,7 +194,7 @@ def test_area_potential_matches_sequential_oracle(
             ds.load(), _parsed_config(config, override)
         )
     expected = expected.transpose("band", "y", "x").fillna(-1.0)
-    np.testing.assert_array_equal(da.values, expected.values)
+    np.testing.assert_array_equal(da.values, expected.values.astype(np.float32))
 
 
 def test_area_potential_inclusive_min_max_boundaries(world, resampled_path, tmp_path):
@@ -215,7 +219,7 @@ def test_area_potential_inclusive_min_max_boundaries(world, resampled_path, tmp_
     )
     expected = sequential_area_potential(ds, _parsed_config(config, None))
     expected = expected.transpose("band", "y", "x").fillna(-1.0)
-    np.testing.assert_array_equal(da.values, expected.values)
+    np.testing.assert_array_equal(da.values, expected.values.astype(np.float32))
     # Pixels lying exactly on the bounds must survive the min/max filter.
     values = np.squeeze(da.values)
     on_boundary = (slope == finite[1]) | (slope == finite[-2])
@@ -264,7 +268,7 @@ def test_area_potential_matches_sequential_oracle_randomized(
     )
     expected = sequential_area_potential(ds, _parsed_config(config, None))
     expected = expected.transpose("band", "y", "x").fillna(-1.0)
-    np.testing.assert_array_equal(da.values, expected.values)
+    np.testing.assert_array_equal(da.values, expected.values.astype(np.float32))
 
 
 def test_area_potential_all_excluded(world, resampled_path, tmp_path):
@@ -282,7 +286,7 @@ def test_area_potential_all_excluded(world, resampled_path, tmp_path):
     with xr.open_dataset(resampled_path, decode_coords="all") as ds:
         expected = sequential_area_potential(ds.load(), _parsed_config(config, None))
     expected = expected.transpose("band", "y", "x").fillna(-1.0)
-    np.testing.assert_array_equal(da.values, expected.values)
+    np.testing.assert_array_equal(da.values, expected.values.astype(np.float32))
     assert (da.values == 0).all()
 
 
@@ -304,4 +308,4 @@ def test_area_potential_tiny_grid(world, resampled_path, tmp_path):
     assert da.shape == (1, 2, 2)
     expected = sequential_area_potential(tiny, _parsed_config(config, None))
     expected = expected.transpose("band", "y", "x").fillna(-1.0)
-    np.testing.assert_array_equal(da.values, expected.values)
+    np.testing.assert_array_equal(da.values, expected.values.astype(np.float32))

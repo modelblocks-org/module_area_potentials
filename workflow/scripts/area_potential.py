@@ -117,12 +117,15 @@ def get_area_potential(
     ax = plot_with_zero_separate(ax=ax, da=potential_da)
     plt.savefig(plot_path, bbox_inches="tight")
 
-    # Fill NaN with a nodata value only after plotting
+    # Fill NaN with a nodata value only after plotting.
+    # float32 halves the file size and downstream I/O; per-pixel areas are at
+    # most ~1e5 m2, where float32 error is below 0.01 m2. PREDICTOR=3 improves
+    # LZW compression of float data.
     nodata_value = -1
-    potential_da = potential_da.fillna(nodata_value)
+    potential_da = potential_da.fillna(nodata_value).astype("float32")
     potential_da.rio.write_nodata(nodata_value, inplace=True)
     potential_da.rio.to_raster(
-        output_path, driver="GTiff", compress="LZW", write_nodata=True
+        output_path, driver="GTiff", compress="LZW", predictor=3, write_nodata=True
     )
 
 
