@@ -45,21 +45,29 @@ GLOBCOVER_TYPES = {
 
 
 def aggregate_land_cover_types(ds_land_cover, land_cover_types):
-    """Convert raw GlobCover data to a dataset with suitable land cover types."""
+    """Convert raw GlobCover data to a dataset with suitable land cover types.
+
+    Maps the integer land cover codes to category ids through a lookup table
+    in a single vectorised pass, keeping everything in small integer dtypes.
+    Codes without a category (not in GLOBCOVER_TYPES) map to the sentinel 0
+    and belong to no category.
+    """
     suitable_land_cover = xr.Dataset(coords=ds_land_cover.coords)
 
-    # convert the input value to land cover type of interest
-    for value in np.unique(ds_land_cover.data):
-        if value in GLOBCOVER_TYPES:
-            ds_land_cover = ds_land_cover.where(
-                ds_land_cover != value,
-                other=land_cover_types[GLOBCOVER_TYPES[value]],
-                drop=False,
-            )
+    data = ds_land_cover.data
+    categories = sorted(set(land_cover_types.values()))
+    category_ids = {category: i for i, category in enumerate(categories, start=1)}
+    lut = np.zeros(max(256, int(data.max()) + 1), dtype=np.uint8)
+    for code, name in GLOBCOVER_TYPES.items():
+        lut[code] = category_ids[land_cover_types[name]]
+    mapped = lut[data]
 
     # check if each pixel is in the list of suitable land cover types
-    for type_ in sorted(list(set(land_cover_types.values()))):
-        suitable_land_cover[type_] = (ds_land_cover == type_).astype(np.byte)
+    for type_ in categories:
+        suitable_land_cover[type_] = (
+            ds_land_cover.dims,
+            (mapped == category_ids[type_]).astype(np.byte),
+        )
 
     return suitable_land_cover
 
