@@ -60,8 +60,12 @@ def utm_buffer(geom, buffer_distance_m=10000, source_crs="EPSG:4326"):
 def apply_utm_buffer(gdf, buffer_distance_m=10000):
     """Apply a UTM-based buffer to a GeoDataFrame with an arbitrary CRS.
 
-    The buffering will be performed row-by-row using the most appropriate UTM zone for
-    each geometry's centroid.
+    The most appropriate UTM zone is chosen per geometry from its centroid;
+    geometries are then grouped by zone and each group is projected, buffered
+    and re-projected in one vectorised operation (instead of constructing a
+    single-row GeoDataFrame and two projection pipelines per geometry).
+    Geometries that cannot be buffered (e.g. centroid outside the UTM latitude
+    range) produce a warning and None, as before.
 
     Args:
         gdf (geopandas.GeoDataFrame): The GeoDataFrame containing geometries to buffer.
@@ -73,7 +77,30 @@ def apply_utm_buffer(gdf, buffer_distance_m=10000):
     """
     source_crs = gdf.crs
     gdf_buffered = gdf.copy()
-    gdf_buffered["geometry"] = gdf_buffered["geometry"].apply(
-        lambda geom: utm_buffer(geom, buffer_distance_m, source_crs)
-    )
+
+    zone_indices = {}
+    for index, geom in gdf_buffered["geometry"].items():
+        try:
+            centroid = geom.centroid
+            local_crs = get_utm_crs_from_lonlat(centroid.x, centroid.y)
+        except Exception as e:
+            warnings.warn(f"Failed to buffer geometry: {e}")
+            gdf_buffered.loc[index, "geometry"] = None
+            continue
+        zone_indices.setdefault(local_crs, []).append(index)
+
+    for local_crs, indices in zone_indices.items():
+        try:
+            buffered = (
+                gdf_buffered.loc[indices, "geometry"]
+                .set_crs(source_crs, allow_override=True)
+                .to_crs(local_crs)
+                .buffer(buffer_distance_m)
+                .to_crs(source_crs)
+            )
+        except Exception as e:
+            warnings.warn(f"Failed to buffer geometry: {e}")
+            buffered = None
+        gdf_buffered.loc[indices, "geometry"] = buffered
+
     return gdf_buffered
