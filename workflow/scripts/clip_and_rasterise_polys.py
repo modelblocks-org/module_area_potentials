@@ -3,6 +3,7 @@
 import click
 import geopandas as gpd
 import rioxarray as rxr
+from shapely.geometry import box
 
 
 @click.command()
@@ -19,8 +20,19 @@ def clip_and_rasterise_polys(
 
     # FIXME: read the right layer(s) and deal with both poly and point layers
     xmin, ymin, xmax, ymax = shapes.total_bounds
-    protected_areas = gpd.read_file(protected_area_path)
-    print(f"Protected areas: {len(protected_areas)}")
+    # The bbox filter is pushed down to the driver's spatial index, so only
+    # features that can possibly overlap the reference raster are read instead
+    # of the entire (potentially multi-GB, global) dataset. Attribute columns
+    # are skipped; only geometries are needed. Passing the bbox as a GeoSeries
+    # (rather than a tuple) lets geopandas transform it into the dataset's own
+    # CRS before filtering.
+    bbox = gpd.GeoSeries(
+        [box(*reference_raster.rio.bounds())], crs=reference_raster.rio.crs
+    )
+    protected_areas = gpd.read_file(
+        protected_area_path, bbox=bbox, columns=[], use_arrow=True
+    )
+    print(f"Protected areas intersecting the reference raster: {len(protected_areas)}")
     protected_areas = protected_areas.to_crs(shapes.crs)
     protected_areas = protected_areas.cx[xmin:xmax, ymin:ymax]
     print(f"Protected areas after applying total_bounds: {len(protected_areas)}")
