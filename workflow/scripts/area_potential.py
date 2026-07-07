@@ -56,29 +56,44 @@ def get_area_potential(
     # Start with the configured pixel area as a base
     potential_da = ds[config["initial_area"]].squeeze(drop=True)  # Drop `band`
 
-    # Zero out pixels from binary layers with share 0 from potential_da
+    # All zero-out criteria are accumulated into a single boolean keep-mask and
+    # applied in one .where() call: boolean masks are cheap, while each
+    # .where() on the potential would copy the full float array.
+    keep = None
+
+    def _all_of(mask, condition):
+        return condition if mask is None else mask & condition
+
+    # Zero out pixels from binary layers with share 0
     binary_layers = config.get("binary_layers", {})
-    zero_binary_layers = [layer for layer, value in binary_layers.items() if value == 0]
-    for layer in zero_binary_layers:
+    for layer, value in binary_layers.items():
+        if value != 0:
+            continue
         if layer in ds:
-            potential_da = potential_da.where(~(ds[layer] > 0), other=0)
+            keep = _all_of(keep, ~(ds[layer] > 0))
         else:
             print(f"Warning: Layer '{layer}' not found in dataset. Skipping.")
 
-    # Apply the continuous_layers criteria to zero out additional pixels
+    # Zero out pixels outside the min-max criteria of the continuous layers
     continuous_layers = config.get("continuous_layers", {})
     for layer, layer_config in continuous_layers.items():
         if layer in ds:
-            # Apply the min-max criteria
-            potential_da = potential_da.where(
+            keep = _all_of(
+                keep,
                 (ds[layer] <= layer_config["max"]) & (ds[layer] >= layer_config["min"]),
-                other=0,
             )
-            # If a share is defined, multiply the pixel area by the share
-            if "share" in layer_config:
-                potential_da = potential_da * layer_config["share"]
         else:
             print(f"Warning: Layer '{layer}' not found in dataset. Skipping.")
+
+    if keep is not None:
+        potential_da = potential_da.where(keep, other=0)
+
+    # If a share is defined for a continuous layer, multiply the pixel area by
+    # the share (in configuration order, to stay bit-identical with the
+    # previous per-layer chain)
+    for layer, layer_config in continuous_layers.items():
+        if layer in ds and "share" in layer_config:
+            potential_da = potential_da * layer_config["share"]
 
     # Multiply pixels by their share from the binary layers
     for layer, value in binary_layers.items():
@@ -102,11 +117,14 @@ def get_area_potential(
             else:
                 buffer = shapes_subset.to_crs(buffer_crs).buffer(buffer_distance)
 
-            # Clip the potential area with the buffered shapes
+            # Clip the potential area with the buffered shapes. drop=False
+            # keeps the output grid identical across techs (with drop=True the
+            # raster is cropped to the inverse-mask extent) and skips the crop
+            # work; clipped-out pixels become nodata.
             potential_da.rio.write_crs(ds.rio.crs, inplace=True)
             buffer_geo = gpd.GeoDataFrame(geometry=buffer).to_crs(ds.rio.crs)
             potential_da = potential_da.rio.clip(
-                buffer_geo.geometry, buffer_geo.crs, invert=True
+                buffer_geo.geometry, buffer_geo.crs, invert=True, drop=False
             )
 
     potential_da.name = "area_potential"
