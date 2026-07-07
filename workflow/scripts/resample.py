@@ -2,7 +2,6 @@
 
 import math
 
-import _script_utils
 import click
 import geopandas as gpd
 import numpy as np
@@ -163,7 +162,6 @@ def _rasterize_regions(shapes, reference_raster):
 @click.argument("protected_area_path", type=str)
 @click.argument("land_cover_configuration_yaml_string", type=str)
 @click.argument("output_path", type=str)
-@click.argument("plot_path", type=str)
 @click.option("--ship-travel-path", type=str)
 def resample_inputs(
     shapes_path,
@@ -174,13 +172,13 @@ def resample_inputs(
     protected_area_path,
     land_cover_configuration_yaml_string,
     output_path,
-    plot_path,
     ship_travel_path,
 ):
     """Resample various geospatial datasets to a common shape and resolution.
 
-    Results are saved to the specified output path in NetCDF format,
-    and a plot of the resampled data is saved to the specified plot path.
+    Results are saved to the specified output path in NetCDF format.
+    (Plotting is a separate workflow step, so that downstream rules do not
+    wait for it: see nc_to_png.py.)
 
     """
     shapes = gpd.read_parquet(shapes_path)
@@ -355,9 +353,6 @@ def resample_inputs(
 
     print("Saving result to output path:", output_path)
     resampled.to_netcdf(output_path, encoding=netcdf4_encoding)
-
-    print("Saving image to plot path:", plot_path)
-    _script_utils.plot_all_dataset_variables(resampled, ncols=3, savefig=plot_path)
 
 
 if __name__ == "__main__":

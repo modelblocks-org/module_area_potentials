@@ -136,7 +136,6 @@ def resampled_path(world, wdpa_raster_path, tmp_path_factory):
             wdpa_raster_path,
             yaml.dump(fixtures.LAND_COVER_TYPES),
             path,
-            directory / "resampled.png",
             "--ship-travel-path",
             world["ship_travel"],
         ],

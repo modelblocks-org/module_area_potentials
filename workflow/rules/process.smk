@@ -17,10 +17,6 @@ rule prepare_resampled_inputs:
         ),
     output:
         resampled_input="<resources>/automatic/resampled_inputs/{shape}/{subunit}.nc",
-        plot=report(
-            "<resources>/automatic/resampled_inputs/{shape}/{subunit}.png",
-            category="resampled_input",
-        ),
     log:
         "<logs>/{shape}/{subunit}/prepare_resampled_inputs.log",
     conda:
@@ -42,9 +38,27 @@ rule prepare_resampled_inputs:
             "{input.shapes}/{wildcards.subunit}.parquet" \
             {input.land_cover_path:q} {input.slope_path:q} {input.settlement_path:q} {input.bathymetry_path:q} {input.protected_area_path:q} \
             {params.land_cover_types_yaml_string:q} \
-            {output.resampled_input:q} {output.plot:q} \
+            {output.resampled_input:q} \
             {params.ship_travel_arg} >{log:q} 2>&1
         """
+
+
+rule plot_resampled_inputs:
+    input:
+        rules.prepare_resampled_inputs.output.resampled_input,
+    output:
+        report(
+            "<resources>/automatic/resampled_inputs/{shape}/{subunit}.png",
+            category="resampled_input",
+        ),
+    log:
+        "<logs>/{shape}/{subunit}/plot_resampled_inputs.log",
+    conda:
+        "../envs/module.yaml"
+    message:
+        "Plot resampled inputs for {wildcards.subunit} in {wildcards.shape}."
+    script:
+        "../scripts/nc_to_png.py"
 
 
 rule area_potential:
@@ -123,6 +137,9 @@ rule area_potential_report:
             "<results>/{{shape}}/area_potential_{tech}.png",
             tech=config["techs"].keys(),
         ),
+        # Not used by the report itself: pulls in the per-subunit diagnostic
+        # plots, which run in parallel jobs off the area_potential critical path
+        resampled_input_plots=get_subunit_input_plots,
     output:
         csv="<results>/{shape}/area_potential_report.csv",
         html=report(

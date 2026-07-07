@@ -16,3 +16,13 @@ def uses_ship_travel(wildcards):
         "ship_travel" in tech_config.get("continuous_layers", {})
         for tech_config in tech_configs
     )
+
+
+def get_subunit_input_plots(wildcards):
+    checkpoint_output = checkpoints.breakup_shape.get(**wildcards).output[0]
+    return expand(
+        "<resources>/automatic/resampled_inputs/{{shape}}/{subunit}.png",
+        subunit=glob_wildcards(
+            os.path.join(checkpoint_output, "{subunit}.parquet")
+        ).subunit,
+    )
