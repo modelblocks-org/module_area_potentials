@@ -79,9 +79,10 @@ def _area_of_pixel(pixel_size, center_lat):
 
     Parameters:
         pixel_size (float): length of side of pixel in degrees.
-        center_lat (float): latitude of the center of the pixel. Note this
-            value +/- half the `pixel-size` must not exceed 90/-90 degrees
-            latitude or an invalid area will be calculated.
+        center_lat (float or np.ndarray): latitude of the center of the pixel
+            (scalar or array). Note this value +/- half the `pixel-size` must
+            not exceed 90/-90 degrees latitude or an invalid area will be
+            calculated.
 
     Returns:
         Area of square pixel of side length `pixel_size` centered at
@@ -91,16 +92,17 @@ def _area_of_pixel(pixel_size, center_lat):
     a = 6378137  # meters
     b = 6356752.3142  # meters
     e = math.sqrt(1 - (b / a) ** 2)
-    area_list = []
-    for f in [center_lat + pixel_size / 2, center_lat - pixel_size / 2]:
-        zm = 1 - e * math.sin(math.radians(f))
-        zp = 1 + e * math.sin(math.radians(f))
-        area_list.append(
-            math.pi
-            * b**2
-            * (math.log(zp / zm) / (2 * e) + math.sin(math.radians(f)) / (zp * zm))
-        )
-    return pixel_size / 360.0 * (area_list[0] - area_list[1]) / 1e6
+
+    def zone_area(latitude):
+        sin_lat = np.sin(np.radians(latitude))
+        zm = 1 - e * sin_lat
+        zp = 1 + e * sin_lat
+        return np.pi * b**2 * (np.log(zp / zm) / (2 * e) + sin_lat / (zp * zm))
+
+    center_lat = np.asarray(center_lat)
+    upper = zone_area(center_lat + pixel_size / 2)
+    lower = zone_area(center_lat - pixel_size / 2)
+    return pixel_size / 360.0 * (upper - lower) / 1e6
 
 
 def determine_pixel_areas(raster_input):
@@ -119,8 +121,7 @@ def determine_pixel_areas(raster_input):
         "raster_input does not have the projection EPSG:4326"
     )
     resolution = raster_input.rio.resolution()[0]  # resolution in degrees
-    varea_of_pixel = np.vectorize(lambda lat: _area_of_pixel(resolution, lat))
-    pixel_area = varea_of_pixel(raster_input.y) * 1000**2  # convert to m^2
+    pixel_area = _area_of_pixel(resolution, np.asarray(raster_input.y)) * 1000**2  # m^2
 
     pixel_area_da = xr.DataArray(pixel_area, coords={"y": raster_input.y}, dims="y")
     return pixel_area_da
