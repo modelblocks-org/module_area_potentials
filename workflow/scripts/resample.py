@@ -255,7 +255,7 @@ def resample_inputs(
     print(f"Slope resolution: {da_slope.rio.resolution()}")
     da_slope = _clip_to_bounds(da_slope, reference_bounds) / 100
     resampled["slope_deg"] = da_slope.rio.reproject_match(
-        reference_raster, resampling=Resampling.average
+        reference_raster, resampling=Resampling.average, num_threads=4
     )
     del da_slope
 
@@ -279,7 +279,9 @@ def resample_inputs(
     # then reproject to match the reference raster
     resampled["settlement_share"] = (
         ds_settlement / ds_settlement_pixel_area
-    ).rio.reproject_match(reference_raster, resampling=Resampling.average)
+    ).rio.reproject_match(
+        reference_raster, resampling=Resampling.average, num_threads=4
+    )
 
     resampled["settlement_area"] = (
         resampled["settlement_share"] * resampled["pixel_area"]
@@ -298,7 +300,7 @@ def resample_inputs(
     # Only keep values <= 0, i.e., below sea level
     ds_bathymetry = ds_bathymetry.where(ds_bathymetry <= 0, other=np.nan)
     resampled["bathymetry"] = ds_bathymetry.rio.reproject_match(
-        reference_raster, resampling=Resampling.average
+        reference_raster, resampling=Resampling.average, num_threads=4
     )
     del ds_bathymetry
 
@@ -310,7 +312,7 @@ def resample_inputs(
         np.float32
     )
     resampled["protected"] = protected_areas.rio.reproject_match(
-        reference_raster, resampling=Resampling.average
+        reference_raster, resampling=Resampling.average, num_threads=4
     )
     del protected_areas
 
@@ -323,7 +325,7 @@ def resample_inputs(
         # masked=True already yields float32; clip before the warp like the rest
         ship_travel = _clip_to_bounds(ship_travel, reference_bounds)
         resampled["ship_travel"] = ship_travel.rio.reproject_match(
-            reference_raster, resampling=Resampling.average
+            reference_raster, resampling=Resampling.average, num_threads=4
         )
         del ship_travel
 
