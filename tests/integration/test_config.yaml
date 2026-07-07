@@ -72,3 +72,9 @@ module_area_potentials:
         protected: 0
       shapes_buffer:
         land: 10000  # meters
+  # Exercise the per-subunit override (glom merge) code path end-to-end
+  overrides:
+    NLD:
+      wind_offshore:
+        shapes_buffer:
+          land: 2000  # meters

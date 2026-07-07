@@ -1,0 +1,4 @@
+group,shape_id,country_id,shape_class,parent_name,area_potential_tech_a.tif,area_potential_tech_b.tif
+0.0,region_a,AAA,land,Parent of region_a,2437283.577574824,2437438.2973064687
+1.0,region_b,AAA,land,Parent of region_b,2274233.1036364473,2214124.0836778367
+2.0,region_sea,AAA,maritime,Parent of region_sea,2264137.349540676,2239610.566592394
