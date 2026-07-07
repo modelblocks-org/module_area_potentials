@@ -144,9 +144,13 @@ def test_integration_output_values(module_path):
     Tolerances are deliberately tight: the workflow is expected to be
     reproducible from pinned inputs and pinned dependencies. Performance
     rewrites that change floating-point precision must relax these tolerances
-    consciously, so the change is visible in review.
+    consciously, so the change is visible in review. rel_tol was relaxed from
+    1e-9 to 1e-5 when the pipeline moved from float64 to float32 processing;
+    the reference data still stems from the float64 pipeline. A single pixel
+    flipping at a min/max threshold (float32 vs float64 warp averaging) moves
+    a region total by up to ~1e-6 relative, hence the margin.
     """
-    rel_tol, abs_tol = 1e-9, 1e-6
+    rel_tol, abs_tol = 1e-5, 1e-6
     actual_rows = _read_csv_rows(_report_csv_path(module_path))
     reference_csv = module_path / "tests/reference/NLD_area_potential_report.csv"
     assert reference_csv.exists(), (

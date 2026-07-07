@@ -76,14 +76,14 @@ def test_resample_reference_values(resampled, reference):
 # On-disk dtypes as written by the current pipeline (queried with
 # mask_and_scale=False). Any change here is a deliberate storage change.
 ON_DISK_DTYPES = {
-    "bathymetry": "float64",
-    "pixel_area": "float64",
-    "protected": "uint8",
+    "bathymetry": "float32",
+    "pixel_area": "float32",
+    "protected": "float32",
     "regions": "float32",
     "regions_land": "int8",
     "regions_maritime": "int8",
-    "settlement_area": "float64",
-    "settlement_share": "float64",
+    "settlement_area": "float32",
+    "settlement_share": "float32",
     "ship_travel": "float32",
     "slope_deg": "float32",
 } | {

@@ -126,6 +126,22 @@ def determine_pixel_areas(raster_input):
     return pixel_area_da
 
 
+def _clip_to_bounds(da, bounds, pad_pixels=2):
+    """Clip a raster to the given bounds, padded by a few of its own pixels.
+
+    reproject_match onto a target grid within ``bounds`` only needs the source
+    pixels overlapping that grid (plus a small halo for average resampling), so
+    inputs can be clipped up front. Because rasters are opened lazily, all
+    subsequent arithmetic then reads and processes only the needed window
+    instead of the full extent.
+    """
+    xmin, ymin, xmax, ymax = bounds
+    pad = pad_pixels * max(abs(resolution) for resolution in da.rio.resolution())
+    return da.rio.clip_box(
+        minx=xmin - pad, miny=ymin - pad, maxx=xmax + pad, maxy=ymax + pad
+    )
+
+
 def _rasterize_regions(shapes, reference_raster):
     regions = [(geom, idx) for idx, geom in zip(shapes.index, shapes.geometry)]
     return rasterize(
@@ -195,7 +211,7 @@ def resample_inputs(
     # Pixel area
     ##
 
-    pixel_area = determine_pixel_areas(resampled)
+    pixel_area = determine_pixel_areas(resampled).astype(np.float32)
     resampled["pixel_area"] = pixel_area.expand_dims({"x": resampled.x}).transpose(
         "y", "x"
     )
@@ -229,11 +245,16 @@ def resample_inputs(
     )
     del mask_land, mask_maritime
 
+    # The clipped land cover grid is the target grid: all other inputs are
+    # clipped to its bounds before any arithmetic touches them.
+    reference_bounds = reference_raster.rio.bounds()
+
     ##
     # Slope
     ##
-    da_slope = rxr.open_rasterio(slope_path, masked=True) / 100
+    da_slope = rxr.open_rasterio(slope_path, masked=True)
     print(f"Slope resolution: {da_slope.rio.resolution()}")
+    da_slope = _clip_to_bounds(da_slope, reference_bounds) / 100
     resampled["slope_deg"] = da_slope.rio.reproject_match(
         reference_raster, resampling=Resampling.average
     )
@@ -244,9 +265,13 @@ def resample_inputs(
     ##
     ds_settlement = rxr.open_rasterio(settlement_path)
     print(f"Settlement resolution: {ds_settlement.rio.resolution()}")
+    # Both operands are cast to float32: a float64 operand would promote the
+    # division result (and everything downstream) back to float64.
+    ds_settlement = _clip_to_bounds(ds_settlement, reference_bounds).astype(np.float32)
 
     ds_settlement_pixel_area = (
         determine_pixel_areas(ds_settlement)
+        .astype(np.float32)
         .expand_dims({"x": ds_settlement.x})
         .transpose("y", "x")
     )
@@ -267,9 +292,12 @@ def resample_inputs(
     ##
 
     ds_bathymetry = rxr.open_rasterio(bathymetry_path)
+    print(f"Bathymetry resolution: {ds_bathymetry.rio.resolution()}")
+    # float32 before the NaN-introducing filter: .where() with NaN on integer
+    # data would otherwise promote to float64.
+    ds_bathymetry = _clip_to_bounds(ds_bathymetry, reference_bounds).astype(np.float32)
     # Only keep values <= 0, i.e., below sea level
     ds_bathymetry = ds_bathymetry.where(ds_bathymetry <= 0, other=np.nan)
-    print(f"Bathymetry resolution: {ds_bathymetry.rio.resolution()}")
     resampled["bathymetry"] = ds_bathymetry.rio.reproject_match(
         reference_raster, resampling=Resampling.average
     )
@@ -279,6 +307,9 @@ def resample_inputs(
     # Protected areas
     ##
     protected_areas = rxr.open_rasterio(protected_area_path)
+    protected_areas = _clip_to_bounds(protected_areas, reference_bounds).astype(
+        np.float32
+    )
     resampled["protected"] = protected_areas.rio.reproject_match(
         reference_raster, resampling=Resampling.average
     )
@@ -290,6 +321,8 @@ def resample_inputs(
     if ship_travel_path:
         ship_travel = rxr.open_rasterio(ship_travel_path, masked=True)
         print(f"Ship travel resolution: {ship_travel.rio.resolution()}")
+        # masked=True already yields float32; clip before the warp like the rest
+        ship_travel = _clip_to_bounds(ship_travel, reference_bounds)
         resampled["ship_travel"] = ship_travel.rio.reproject_match(
             reference_raster, resampling=Resampling.average
         )
@@ -305,6 +338,19 @@ def resample_inputs(
         netcdf4_encoding[v]["scale_factor"] = 1
         netcdf4_encoding[v]["add_offset"] = 0
         netcdf4_encoding[v]["_FillValue"] = -128
+    # Continuous variables are float32 end to end; enforce it on disk as well
+    # in case an input source arrives as float64.
+    for v in [
+        "slope_deg",
+        "settlement_share",
+        "settlement_area",
+        "bathymetry",
+        "protected",
+        "pixel_area",
+        "ship_travel",
+    ]:
+        if v in netcdf4_encoding:
+            netcdf4_encoding[v]["dtype"] = "float32"
 
     print("Saving result to output path:", output_path)
     resampled.to_netcdf(output_path, encoding=netcdf4_encoding)
