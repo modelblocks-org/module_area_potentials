@@ -7,7 +7,7 @@ checkpoint breakup_shape:
     log:
         "<logs>/{shape}/breakup_shape.log",
     conda:
-        "../envs/default.yaml"
+        "../envs/module.yaml"
     params:
         split_by=config["split_by"],
     message:
@@ -36,7 +36,7 @@ rule prepare_resampled_inputs:
     log:
         "<logs>/{shape}/{subunit}/prepare_resampled_inputs.log",
     conda:
-        "../envs/default.yaml"
+        "../envs/module.yaml"
     params:
         # Use internal defaults if not overridden
         land_cover_types_yaml_string=internal["land_cover_types"]
@@ -67,7 +67,7 @@ rule area_potential:
     log:
         "<logs>/{shape}/{subunit}/area_potential_{tech}.log",
     conda:
-        "../envs/default.yaml"
+        "../envs/module.yaml"
     params:
         config=lambda wildcards: config["techs"][f"{wildcards.tech}"],
         subunit_override_config=lambda wildcards: config.get("overrides", {})
@@ -90,7 +90,7 @@ rule aggregate_area_potential:
     log:
         "<logs>/{shape}/aggregate_area_potential_{tech}.log",
     conda:
-        "../envs/default.yaml"
+        "../envs/module.yaml"
     message:
         "Aggregate area potential for the tech {wildcards.tech} in {wildcards.shape}."
     shell:
@@ -110,7 +110,7 @@ rule plot_aggregated_area_potential:
     log:
         "<logs>/{shape}/plot_aggregated_area_potential_{tech}.log",
     conda:
-        "../envs/default.yaml"
+        "../envs/module.yaml"
     message:
         "Plot aggregated area potential for the tech {wildcards.tech} in {wildcards.shape}."
     script:
@@ -138,7 +138,7 @@ rule area_potential_report:
     log:
         "<logs>/{shape}/area_potential_report.log",
     conda:
-        "../envs/default.yaml"
+        "../envs/module.yaml"
     message:
         "Generate an overview report of the area potential for all techs in shapes {wildcards.shape}."
     script:

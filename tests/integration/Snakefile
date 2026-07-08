@@ -8,7 +8,7 @@ rule download_netherlands_shapes:
     log:
         "logs/download_netherlands_shapes.log",
     conda:
-        "../../workflow/envs/shell.yaml"
+        "../../workflow/envs/module.yaml"
     message:
         "Download and unzip the Netherlands shapes."
     shell:
@@ -23,7 +23,7 @@ rule download_netherlands_protected_areas:
     log:
         "logs/download_netherlands_protected_areas.log",
     conda:
-        "../../workflow/envs/shell.yaml"
+        "../../workflow/envs/module.yaml"
     message:
         "Download a dummy drop-in dataset for Netherlands protected areas (not based on WDPA)."
     shell:
@@ -41,7 +41,7 @@ rule unzip_netherlands_protected_areas:
     log:
         "logs/unzip_netherlands_protected_areas.log",
     conda:
-        "../../workflow/envs/shell.yaml"
+        "../../workflow/envs/module.yaml"
     message:
         "Download protected areas data."
     shell:

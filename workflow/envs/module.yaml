@@ -1,0 +1,27 @@
+name: module
+channels:
+- conda-forge
+- nodefaults
+dependencies:
+- curl >=8.9.1
+- python >=3.13
+- click >=8.2.1
+- geopandas >=1.1.0
+- pandas >=2.3.0
+- pandera-geopandas >=0.24.0
+- pyarrow >=19.0.1
+- xarray >=2025.6.1
+- netcdf4 >=1.7.2
+- fiona >=1.10.1
+- rasterio >=1.4.3
+- rioxarray >=0.19.0
+- gdal >=3.10.3
+- libgdal-arrow-parquet >=3.10.3
+- libgdal-hdf5 >=3.10.3
+- matplotlib >=3.10.3
+- pyyaml >=6.0.3
+- pyproj >=3.7.1
+- utm >=0.7.0
+- glom >=24.11.0
+- dask >=2025.7.0
+- numpy >=2.3.5

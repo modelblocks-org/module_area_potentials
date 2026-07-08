@@ -49,7 +49,7 @@ else:
             "<logs>/download_slope.log",
         localrule: True
         conda:
-            "../envs/shell.yaml"
+            "../envs/module.yaml"
         params:
             url=internal["resources"]["automatic"]["slope"],
         message:
@@ -66,7 +66,7 @@ else:
             "<logs>/download_bathymetry.log",
         localrule: True
         conda:
-            "../envs/shell.yaml"
+            "../envs/module.yaml"
         params:
             url=internal["resources"]["automatic"]["bathymetry"],
         message:
@@ -86,7 +86,7 @@ else:
         log:
             "<logs>/{shape}/clip_slope.log",
         conda:
-            "../envs/default.yaml"
+            "../envs/module.yaml"
         message:
             "Cut slope data to the bounds of the input shapefile."
         shell:
@@ -104,7 +104,7 @@ else:
         log:
             "<logs>/{shape}/clip_bathymetry.log",
         conda:
-            "../envs/default.yaml"
+            "../envs/module.yaml"
         message:
             "Cut bathymetry data to the bounds of the input shapefile."
         shell:
@@ -125,7 +125,7 @@ rule download_globcover:
         "<logs>/download_globcover.log",
     localrule: True
     conda:
-        "../envs/shell.yaml"
+        "../envs/module.yaml"
     params:
         url=internal["resources"]["automatic"]["globcover"],
     message:
@@ -145,7 +145,7 @@ rule unzip_globcover:
     log:
         "<logs>/unzip_globcover.log",
     conda:
-        "../envs/shell.yaml"
+        "../envs/module.yaml"
     params:
         target_file=internal["resources"]["automatic"]["globcover_landcover_tif"],
     message:
@@ -166,7 +166,7 @@ rule clip_landcover:
     log:
         "<logs>/{shape}/clip_landcover.log",
     conda:
-        "../envs/default.yaml"
+        "../envs/module.yaml"
     message:
         "Cut land cover data to the bounds of the input shapefile."
     shell:
@@ -187,7 +187,7 @@ rule download_ghsl:
         "<logs>/download_ghsl.log",
     localrule: True
     conda:
-        "../envs/shell.yaml"
+        "../envs/module.yaml"
     params:
         url=internal["resources"]["automatic"]["ghsl"],
     message:
@@ -207,7 +207,7 @@ rule unzip_ghsl:
     log:
         "<logs>/unzip_ghsl.log",
     conda:
-        "../envs/shell.yaml"
+        "../envs/module.yaml"
     params:
         target_file=internal["resources"]["automatic"]["ghsl_tif"],
     message:
@@ -228,7 +228,7 @@ rule clip_settlement:
     log:
         "<logs>/{shape}/clip_settlement.log",
     conda:
-        "../envs/default.yaml"
+        "../envs/module.yaml"
     message:
         "Cut settlement data to the bounds of the input shapefile."
     shell:
@@ -253,7 +253,7 @@ rule rasterise_clip_wdpa:
     log:
         "<logs>/{shape}/clip_wdpa.log",
     conda:
-        "../envs/default.yaml"
+        "../envs/module.yaml"
     message:
         "Rasterise and cut WDPA data to the bounds of the input shapefile, using the landcover raster as reference for the rasterisation."
     shell:
