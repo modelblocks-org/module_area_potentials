@@ -6,13 +6,10 @@
   "files": [
     "README.md"
   ],
-  "contributorsSortAlphabetically": true,
-  "contributorsPerLine": 7,
-  "linkToUsage": false,
+  "imageSize": 100,
   "commit": false,
   "commitConvention": "none",
-  "imageSize": 100,
-  "contributors": [
+    "contributors": [
     {
       "login": "sjpfenninger",
       "name": "Stefan Pfenninger-Lee",
@@ -52,5 +49,8 @@
         "ideas"
       ]
     }
-  ]
+  ],
+  "contributorsPerLine": 7,
+  "linkToUsage": false,
+  "contributorsSortAlphabetically": true
 }

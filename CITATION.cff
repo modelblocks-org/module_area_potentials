@@ -4,10 +4,12 @@
 cff-version: 1.2.0
 message: If you use this software or data produced by it, please cite it using the metadata from this file.
 title: "Modelblocks - module_area_potentials: Area potentials"
-repository: "https://github.com/calliope-project/module_area_potentials"
+repository: "https://github.com/modelblocks-org/module_area_potentials"
 license: Apache-2.0
 authors:
-  - given-names: Linh
-    family-names: Ho-Tran
-  - given-names: Stefan
-    family-names: Pfenninger-Lee
+  - given-names: "Linh"
+    family-names: "Ho-Tran"
+    email: "L.Ho@tudelft.nl"
+  - given-names: "Stefan"
+    family-names: "Pfenninger-Lee"
+    email: "s.pfenninger@tudelft.nl"
