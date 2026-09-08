@@ -21,6 +21,7 @@ rule prepare_resampled_inputs:
         "<logs>/{shape}/{subunit}/prepare_resampled_inputs.log",
     conda:
         "../envs/module.yaml"
+    threads: 4
     params:
         # Use internal defaults if not overridden
         land_cover_types_yaml_string=internal["land_cover_types"]
@@ -39,7 +40,7 @@ rule prepare_resampled_inputs:
             {input.land_cover_path:q} {input.slope_path:q} {input.settlement_path:q} {input.bathymetry_path:q} {input.protected_area_path:q} \
             {params.land_cover_types_yaml_string:q} \
             {output.resampled_input:q} \
-            {params.ship_travel_arg} >{log:q} 2>&1
+            --num-threads {threads} {params.ship_travel_arg} >{log:q} 2>&1
         """
 
 
@@ -113,11 +114,12 @@ rule aggregate_area_potential:
         "<logs>/{shape}/aggregate_area_potential_{tech}.log",
     conda:
         "../envs/module.yaml"
+    threads: 4
     message:
         "Aggregate area potential for the tech {wildcards.tech} in {wildcards.shape}."
     shell:
         """
-        gdalwarp --config GDAL_CACHEMAX 3000 -wm 3000 -multi -wo NUM_THREADS=ALL_CPUS -of GTiff -co COMPRESS=LZW -co PREDICTOR=3 {input} {output.aggregated_area_potential:q} >{log:q} 2>&1
+        gdalwarp --config GDAL_CACHEMAX 3000 -wm 3000 -multi -wo NUM_THREADS={threads} -of GTiff -co COMPRESS=LZW -co PREDICTOR=3 {input} {output.aggregated_area_potential:q} >{log:q} 2>&1
         """
 
 
