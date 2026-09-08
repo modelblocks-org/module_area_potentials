@@ -98,3 +98,10 @@ def test_resample_on_disk_dtypes(resampled_path):
         actual = {name: str(ds[name].dtype) for name in ds.data_vars}
     actual.pop("spatial_ref", None)
     assert actual == ON_DISK_DTYPES
+
+
+def test_resample_decoded_dtypes(resampled):
+    """No variable decodes as float64: masks are int8, everything else float32."""
+    for name in set(resampled.data_vars) - {"spatial_ref"}:
+        expected = np.int8 if name.startswith("landcover_") else np.float32
+        assert resampled[name].dtype == expected, name

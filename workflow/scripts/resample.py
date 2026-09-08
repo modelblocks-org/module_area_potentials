@@ -334,10 +334,10 @@ def resample_inputs(
         for var in resampled.data_vars
         if var not in ["spatial_ref", "band"]
     }
+    # int8 with a fill value decodes as float32 (1 / NaN). No scale_factor or
+    # add_offset: even no-op ones make xarray decode the variable as float64.
     for v in ["regions_land", "regions_maritime"]:
         netcdf4_encoding[v]["dtype"] = "int8"
-        netcdf4_encoding[v]["scale_factor"] = 1
-        netcdf4_encoding[v]["add_offset"] = 0
         netcdf4_encoding[v]["_FillValue"] = -128
     # Continuous variables are float32 end to end; enforce it on disk as well
     # in case an input source arrives as float64.
@@ -352,6 +352,14 @@ def resample_inputs(
     ]:
         if v in netcdf4_encoding:
             netcdf4_encoding[v]["dtype"] = "float32"
+
+    # Source rasters carry no-op scale_factor/add_offset attributes that would
+    # be written to the file and make every variable decode as float64
+    # downstream, doubling the memory of area_potential.py.
+    for var in resampled.data_vars:
+        for attr in ["scale_factor", "add_offset"]:
+            resampled[var].attrs.pop(attr, None)
+            resampled[var].encoding.pop(attr, None)
 
     print("Saving result to output path:", output_path)
     resampled.to_netcdf(output_path, encoding=netcdf4_encoding)
