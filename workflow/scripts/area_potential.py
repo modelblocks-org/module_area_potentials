@@ -4,10 +4,8 @@ import _geo
 import click
 import geopandas as gpd
 import glom
-import matplotlib.pyplot as plt
 import xarray as xr
 import yaml
-from _script_utils import plot_with_zero_separate
 
 
 @click.command()
@@ -16,16 +14,9 @@ from _script_utils import plot_with_zero_separate
 @click.argument("config", type=str)
 @click.argument("buffer_crs", type=str)
 @click.argument("output_path", type=str)
-@click.argument("plot_path", type=str)
 @click.option("--override_config", type=str)
 def get_area_potential(
-    shapes_path,
-    resampled_path,
-    config,
-    buffer_crs,
-    output_path,
-    plot_path,
-    override_config,
+    shapes_path, resampled_path, config, buffer_crs, output_path, override_config
 ):
     """Calculate the area potential based on the provided configuration.
 
@@ -35,7 +26,6 @@ def get_area_potential(
         config (str): Configuration YAML string.
         buffer_crs (str): Coordinate Reference System for buffering shapes.
         output_path (str): Path to save the resulting area potential raster.
-        plot_path (str): Path to save the plot of the area potential.
         override_config (str): Configuration override YAML string.
 
     Returns:
@@ -131,11 +121,7 @@ def get_area_potential(
     potential_da = potential_da.transpose("band", "y", "x")
     potential_da.rio.write_crs(ds.rio.crs, inplace=True)
 
-    fig, ax = plt.subplots(1, 1)
-    ax = plot_with_zero_separate(ax=ax, da=potential_da)
-    plt.savefig(plot_path, bbox_inches="tight")
-
-    # Fill NaN with a nodata value only after plotting.
+    # Fill NaN with a nodata value.
     # float32 halves the file size and downstream I/O; per-pixel areas are at
     # most ~1e5 m2, where float32 error is below 0.01 m2. PREDICTOR=3 improves
     # LZW compression of float data.

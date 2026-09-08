@@ -68,10 +68,6 @@ rule area_potential:
         resampled_path=rules.prepare_resampled_inputs.output.resampled_input,
     output:
         area_potential="<results>/{shape}/{subunit}/area_potential_{tech}.tif",
-        plot=report(
-            "<results>/{shape}/{subunit}/area_potential_{tech}.png",
-            category="area_potential",
-        ),
     log:
         "<logs>/{shape}/{subunit}/area_potential_{tech}.log",
     conda:
@@ -86,8 +82,26 @@ rule area_potential:
         "Compute area potential for the tech {wildcards.tech} and {wildcards.subunit} in {wildcards.shape}."
     shell:
         """
-        python {input.script:q} "{input.shapes}/{wildcards.subunit}.parquet" {input.resampled_path:q} {params.config:q} {params.buffer_crs:q} {output.area_potential:q} {output.plot:q} --override_config={params.subunit_override_config:q} >{log:q} 2>&1
+        python {input.script:q} "{input.shapes}/{wildcards.subunit}.parquet" {input.resampled_path:q} {params.config:q} {params.buffer_crs:q} {output.area_potential:q} --override_config={params.subunit_override_config:q} >{log:q} 2>&1
         """
+
+
+rule plot_area_potential:
+    input:
+        rules.area_potential.output.area_potential,
+    output:
+        report(
+            "<results>/{shape}/{subunit}/area_potential_{tech}.png",
+            category="area_potential",
+        ),
+    log:
+        "<logs>/{shape}/{subunit}/plot_area_potential_{tech}.log",
+    conda:
+        "../envs/module.yaml"
+    message:
+        "Plot area potential for the tech {wildcards.tech} and {wildcards.subunit} in {wildcards.shape}."
+    script:
+        "../scripts/tif_to_png.py"
 
 
 rule aggregate_area_potential:
@@ -140,6 +154,7 @@ rule area_potential_report:
         # Not used by the report itself: pulls in the per-subunit diagnostic
         # plots, which run in parallel jobs off the area_potential critical path
         resampled_input_plots=get_subunit_input_plots,
+        subunit_potential_plots=get_subunit_potential_plots,
     output:
         csv="<results>/{shape}/area_potential_report.csv",
         html=report(

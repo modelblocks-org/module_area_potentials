@@ -80,14 +80,7 @@ UNBUFFERED_CASES = [case for case in CASES if "buffer" not in case]
 def _run_area_potential(world, resampled_path, tmp_path, config, buffer_crs, override):
     """Run the CLI, returning (output DataArray, CLI output text)."""
     tif_path = tmp_path / "area_potential.tif"
-    args = [
-        world["shapes"],
-        resampled_path,
-        yaml.dump(config),
-        buffer_crs,
-        tif_path,
-        tmp_path / "area_potential.png",
-    ]
+    args = [world["shapes"], resampled_path, yaml.dump(config), buffer_crs, tif_path]
     if override is not None:
         args.append(f"--override_config={yaml.dump(override)}")
     result = fixtures.run_cli(get_area_potential, args)

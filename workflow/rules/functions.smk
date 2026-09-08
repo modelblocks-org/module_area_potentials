@@ -26,3 +26,14 @@ def get_subunit_input_plots(wildcards):
             os.path.join(checkpoint_output, "{subunit}.parquet")
         ).subunit,
     )
+
+
+def get_subunit_potential_plots(wildcards):
+    checkpoint_output = checkpoints.breakup_shape.get(**wildcards).output[0]
+    return expand(
+        "<results>/{{shape}}/{subunit}/area_potential_{tech}.png",
+        subunit=glob_wildcards(
+            os.path.join(checkpoint_output, "{subunit}.parquet")
+        ).subunit,
+        tech=config["techs"].keys(),
+    )
