@@ -8,8 +8,10 @@ from _script_utils import plot_all_dataset_variables
 
 def nc_to_png(nc_file_in, png_file_out):
     """Plot all variables of a NetCDF file on a grid of panels."""
-    with xr.open_dataset(nc_file_in, decode_coords="all") as ds:
-        plot_all_dataset_variables(ds.load(), ncols=3, savefig=png_file_out)
+    # Not loaded up front: the plotting helper coarsens variable by variable,
+    # so with cache=False only one full-resolution layer is in memory at a time.
+    with xr.open_dataset(nc_file_in, decode_coords="all", cache=False) as ds:
+        plot_all_dataset_variables(ds, ncols=3, savefig=png_file_out)
 
 
 if __name__ == "__main__":
