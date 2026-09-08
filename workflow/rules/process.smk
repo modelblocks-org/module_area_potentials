@@ -19,6 +19,8 @@ rule prepare_resampled_inputs:
         resampled_input="<resources>/automatic/resampled_inputs/{shape}/{subunit}.nc",
     log:
         "<logs>/{shape}/{subunit}/prepare_resampled_inputs.log",
+    benchmark:
+        "<logs>/{shape}/{subunit}/prepare_resampled_inputs.benchmark.tsv"
     conda:
         "../envs/module.yaml"
     threads: 4
@@ -54,6 +56,8 @@ rule plot_resampled_inputs:
         ),
     log:
         "<logs>/{shape}/{subunit}/plot_resampled_inputs.log",
+    benchmark:
+        "<logs>/{shape}/{subunit}/plot_resampled_inputs.benchmark.tsv"
     conda:
         "../envs/module.yaml"
     message:
@@ -71,6 +75,8 @@ rule area_potential:
         area_potential="<results>/{shape}/{subunit}/area_potential_{tech}.tif",
     log:
         "<logs>/{shape}/{subunit}/area_potential_{tech}.log",
+    benchmark:
+        "<logs>/{shape}/{subunit}/area_potential_{tech}.benchmark.tsv"
     conda:
         "../envs/module.yaml"
     params:
@@ -112,6 +118,8 @@ rule aggregate_area_potential:
         aggregated_area_potential="<area_potential>",
     log:
         "<logs>/{shape}/aggregate_area_potential_{tech}.log",
+    benchmark:
+        "<logs>/{shape}/aggregate_area_potential_{tech}.benchmark.tsv"
     conda:
         "../envs/module.yaml"
     threads: 4
@@ -165,6 +173,8 @@ rule area_potential_report:
         ),
     log:
         "<logs>/{shape}/area_potential_report.log",
+    benchmark:
+        "<logs>/{shape}/area_potential_report.benchmark.tsv"
     conda:
         "../envs/module.yaml"
     message:

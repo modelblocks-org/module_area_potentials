@@ -284,6 +284,8 @@ rule rasterise_clip_wdpa:
         "<resources>/automatic/cutout/{shape}/wdpa.tif",
     log:
         "<logs>/{shape}/clip_wdpa.log",
+    benchmark:
+        "<logs>/{shape}/clip_wdpa.benchmark.tsv"
     conda:
         "../envs/module.yaml"
     message:
