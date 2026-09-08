@@ -6,51 +6,72 @@ import geopandas as gpd
 import numpy as np
 import pandas as pd
 import rasterio
+import rasterio.windows
 from rasterio.features import rasterize
+
+STRIP_ROWS = 1024
 
 
 def report(shapes, area_potentials, csv_path, html_path):
     """Generate a report summarizing area potentials for different technologies."""
     shapes = gpd.read_parquet(shapes)
 
-    print("Generating reference raster and rasterizing regions...")
     with rasterio.open(area_potentials[0]) as src:
         reference_shape = (src.height, src.width)
         reference_transform = src.transform
+        windows = [
+            rasterio.windows.Window(
+                0, row, src.width, min(STRIP_ROWS, src.height - row)
+            )
+            for row in range(0, src.height, STRIP_ROWS)
+        ]
 
-    # Burn each shape's row position once as int32 (-1 = no region): the
-    # bincount aggregation below then replaces a full groupby factorisation
-    # of the region raster for every technology file.
-    region_ids = rasterize(
-        zip(shapes.geometry, range(len(shapes))),
-        out_shape=reference_shape,
-        transform=reference_transform,
-        fill=-1,
-        dtype=np.int32,
-    ).ravel()
-    valid = region_ids >= 0
-    region_ids = region_ids[valid]
-    pixel_counts = np.bincount(region_ids, minlength=len(shapes))
-
-    # Sum each technology's area potential per region into a DataFrame column,
-    # skipping nodata/NaN pixels (as the previous groupby-sum did).
-    columns = {}
-    for area_potential_file in area_potentials:
-        print(f"Processing area potential file: {area_potential_file}")
-        with rasterio.open(area_potential_file) as src:
+    # Sums (and pixel counts) per region are accumulated strip by strip: the
+    # region index is burned per strip and each technology mosaic is read per
+    # strip, so memory stays bounded by a strip instead of several full-size
+    # copies of a country-group mosaic. (Rasters small enough for one strip
+    # give bit-identical sums to a whole-raster aggregation.)
+    sums = {path: np.zeros(len(shapes)) for path in area_potentials}
+    pixel_counts = np.zeros(len(shapes), dtype=np.int64)
+    sources = [rasterio.open(path) for path in area_potentials]
+    try:
+        for src in sources:
             # All technology mosaics must lie on the same grid, otherwise the
-            # flat region index would silently aggregate the wrong pixels.
+            # region index would silently aggregate the wrong pixels.
             assert (src.height, src.width) == reference_shape, (
-                f"Raster shape of {area_potential_file} does not match {area_potentials[0]}"
+                f"Raster shape of {src.name} does not match {area_potentials[0]}"
             )
             assert src.transform == reference_transform, (
-                f"Raster transform of {area_potential_file} does not match {area_potentials[0]}"
+                f"Raster transform of {src.name} does not match {area_potentials[0]}"
             )
-            values = src.read(1, masked=True).ravel()[valid]
-        weights = np.nan_to_num(values.filled(np.nan))
-        columns[area_potential_file] = np.bincount(
-            region_ids, weights=weights, minlength=len(shapes)
+        print(
+            f"Aggregating {len(area_potentials)} rasters over {len(windows)} windows..."
         )
+        for window in windows:
+            # Burn each shape's row position (-1 = no region) for this window
+            region_ids = rasterize(
+                zip(shapes.geometry, range(len(shapes))),
+                out_shape=(window.height, window.width),
+                transform=rasterio.windows.transform(window, reference_transform),
+                fill=-1,
+                dtype=np.int32,
+            ).ravel()
+            valid = region_ids >= 0
+            if not valid.any():
+                continue
+            region_ids = region_ids[valid]
+            pixel_counts += np.bincount(region_ids, minlength=len(shapes))
+            for path, src in zip(area_potentials, sources):
+                values = src.read(1, window=window, masked=True).ravel()[valid]
+                # nodata/NaN pixels contribute nothing (as the groupby-sum did)
+                weights = np.nan_to_num(values.filled(np.nan))
+                sums[path] += np.bincount(
+                    region_ids, weights=weights, minlength=len(shapes)
+                )
+    finally:
+        for src in sources:
+            src.close()
+    columns = sums
 
     # Regions owning no pixel were never part of the groupby-based report;
     # keep them out.
