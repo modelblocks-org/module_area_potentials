@@ -1,12 +1,56 @@
-"""Subset to a bounding box and rasterise polygons."""
+"""Rasterise protected-area polygons onto the grid of a reference raster."""
 
 import click
 import geopandas as gpd
 import numpy as np
+import pyogrio
+import pyproj
 import rioxarray as rxr
+import shapely
 import xarray as xr
 from rasterio.features import geometry_mask
-from shapely.geometry import box
+from rasterio.warp import transform_bounds
+
+# Features per Arrow batch: bounds the memory of the streaming rasterisation
+# (a few thousand WDPA polygons are at most a few hundred MB of geometries).
+BATCH_SIZE = 5000
+
+
+def rasterise_polygons(polygons_path, reference_raster, batch_size=BATCH_SIZE):
+    """Burn the polygons intersecting the reference grid into a 0/1 mask.
+
+    Only features intersecting the reference bounds are read (the driver's
+    spatial index does the filtering), only their geometries (no attribute
+    columns), and they are streamed in Arrow batches: each batch is burned
+    into the shared mask and released, so memory stays bounded by one batch
+    instead of holding every intersecting polygon at once (over Europe the
+    global WDPA has ~150,000 of them). Polygons are reprojected if the layer's
+    CRS differs from the raster's.
+    """
+    raster_crs = pyproj.CRS.from_user_input(reference_raster.rio.crs)
+    layer_crs = pyproj.CRS.from_user_input(pyogrio.read_info(polygons_path)["crs"])
+    bbox = transform_bounds(
+        raster_crs, layer_crs, *reference_raster.rio.bounds(), densify_pts=21
+    )
+    shape = reference_raster.rio.shape
+    transform = reference_raster.rio.transform()
+    mask = np.zeros(shape, dtype=bool)
+    n_features = 0
+    with pyogrio.open_arrow(
+        polygons_path, bbox=bbox, columns=[], use_pyarrow=True, batch_size=batch_size
+    ) as (meta, reader):
+        for batch in reader:
+            wkb = batch.column(meta["geometry_name"] or "wkb_geometry")
+            geometries = shapely.from_wkb(wkb.to_numpy(zero_copy_only=False))
+            if not layer_crs.equals(raster_crs):
+                geometries = gpd.GeoSeries(geometries, crs=layer_crs).to_crs(raster_crs)
+            n_features += len(geometries)
+            mask |= geometry_mask(
+                geometries, out_shape=shape, transform=transform, invert=True
+            )
+            del geometries
+    print(f"Protected areas intersecting the reference raster: {n_features}")
+    return mask
 
 
 @click.command()
@@ -21,40 +65,13 @@ def clip_and_rasterise_polys(
 
     Only polygons intersecting the reference raster are read. The output is a
     0/1 uint8 raster on the full reference grid (1 = inside a polygon), saved
-    to OUTPUT_PATH.
+    to OUTPUT_PATH; resampling it with averaging yields the protected fraction
+    of a pixel. SHAPES_PATH is accepted for interface compatibility.
     """
-    shapes = gpd.read_parquet(shapes_path)
     reference_raster = rxr.open_rasterio(reference_raster_path)
 
     # FIXME: read the right layer(s) and deal with both poly and point layers
-    xmin, ymin, xmax, ymax = shapes.total_bounds
-    # The bbox filter is pushed down to the driver's spatial index, so only
-    # features that can possibly overlap the reference raster are read instead
-    # of the entire (potentially multi-GB, global) dataset. Attribute columns
-    # are skipped; only geometries are needed. Passing the bbox as a GeoSeries
-    # (rather than a tuple) lets geopandas transform it into the dataset's own
-    # CRS before filtering.
-    bbox = gpd.GeoSeries(
-        [box(*reference_raster.rio.bounds())], crs=reference_raster.rio.crs
-    )
-    protected_areas = gpd.read_file(
-        protected_area_path, bbox=bbox, columns=[], use_arrow=True
-    )
-    print(f"Protected areas intersecting the reference raster: {len(protected_areas)}")
-    protected_areas = protected_areas.to_crs(shapes.crs)
-    protected_areas = protected_areas.cx[xmin:xmax, ymin:ymax]
-    print(f"Protected areas after applying total_bounds: {len(protected_areas)}")
-
-    # Burn the polygons into a 0/1 mask on the reference grid. rio.clip would
-    # instead mask the (lazily opened) reference raster itself, materialising a
-    # full-extent float64 copy of it; geometry_mask only ever holds one byte per
-    # pixel. Resampling this mask with averaging yields the protected fraction.
-    mask = geometry_mask(
-        protected_areas.geometry,
-        out_shape=reference_raster.rio.shape,
-        transform=reference_raster.rio.transform(),
-        invert=True,
-    )
+    mask = rasterise_polygons(protected_area_path, reference_raster)
     protected_raster = xr.zeros_like(reference_raster, dtype=np.uint8)
     protected_raster.data[0] = mask
     protected_raster.rio.write_nodata(None, inplace=True)
