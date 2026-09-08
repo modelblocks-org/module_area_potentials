@@ -56,7 +56,9 @@ def aggregate_land_cover_types(ds_land_cover, land_cover_types):
     data = ds_land_cover.data
     categories = sorted(set(land_cover_types.values()))
     category_ids = {category: i for i, category in enumerate(categories, start=1)}
-    lut = np.zeros(max(256, int(data.max()) + 1), dtype=np.uint8)
+    # Size the table from the dtype rather than data.max(): the latter would
+    # load and scan the whole raster just to build a 256-entry table.
+    lut = np.zeros(np.iinfo(data.dtype).max + 1, dtype=np.uint8)
     for code, name in GLOBCOVER_TYPES.items():
         lut[code] = category_ids[land_cover_types[name]]
     mapped = lut[data]

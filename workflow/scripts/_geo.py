@@ -2,7 +2,6 @@
 
 import warnings
 
-import geopandas as gpd
 import utm
 from pyproj import CRS
 
@@ -22,39 +21,6 @@ def get_utm_crs_from_lonlat(lon, lat):
     is_northern = lat >= 0
     epsg_code = 32600 + zone_number if is_northern else 32700 + zone_number
     return CRS.from_epsg(epsg_code)
-
-
-def utm_buffer(geom, buffer_distance_m=10000, source_crs="EPSG:4326"):
-    """Project a geom to UTM, buffer it, then re-project to its source CRS.
-
-    Args:
-        geom (shapely.geometry): The geometry to buffer, in the given source_crs.
-        buffer_distance_m (int): The buffer distance in meters (default is 10,000 m).
-        source_crs (str): The source CRS of the geometry (default is "EPSG:4326").
-
-    Returns:
-        shapely.geometry: The buffered geometry in its original CRS.
-
-    """
-    try:
-        centroid = geom.centroid
-        lon, lat = centroid.x, centroid.y
-        local_crs = get_utm_crs_from_lonlat(lon, lat)
-
-        # Project to local UTM CRS
-        gdf_single = gpd.GeoDataFrame(geometry=[geom], crs=source_crs)
-        gdf_utm = gdf_single.to_crs(local_crs)
-
-        # Buffer in meters
-        gdf_utm["geometry"] = gdf_utm.buffer(buffer_distance_m)
-
-        # Reproject back to WGS84
-        gdf_buffered = gdf_utm.to_crs(source_crs)
-        return gdf_buffered.iloc[0].geometry
-
-    except Exception as e:
-        warnings.warn(f"Failed to buffer geometry: {e}")
-        return None
 
 
 def apply_utm_buffer(gdf, buffer_distance_m=10000):
