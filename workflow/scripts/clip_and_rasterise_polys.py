@@ -1,19 +1,21 @@
 """Rasterise protected-area polygons onto the grid of a reference raster."""
 
 import click
-import geopandas as gpd
 import numpy as np
 import pyogrio
 import pyproj
 import rioxarray as rxr
-import shapely
 import xarray as xr
-from rasterio.features import geometry_mask
+from osgeo import gdal, gdal_array, ogr, osr
 from rasterio.warp import transform_bounds
 
-# Features per Arrow batch: bounds the memory of the streaming rasterisation
-# (a few thousand WDPA polygons are at most a few hundred MB of geometries).
-BATCH_SIZE = 5000
+gdal.UseExceptions()
+ogr.UseExceptions()
+osr.UseExceptions()
+
+# Features per Arrow batch read from the vector source; each batch is burned
+# and released before the next one is read.
+BATCH_SIZE = 500
 
 
 def rasterise_polygons(polygons_path, reference_raster, batch_size=BATCH_SIZE):
@@ -21,36 +23,65 @@ def rasterise_polygons(polygons_path, reference_raster, batch_size=BATCH_SIZE):
 
     Only features intersecting the reference bounds are read (the driver's
     spatial index does the filtering), only their geometries (no attribute
-    columns), and they are streamed in Arrow batches: each batch is burned
-    into the shared mask and released, so memory stays bounded by one batch
-    instead of holding every intersecting polygon at once (over Europe the
-    global WDPA has ~150,000 of them). Polygons are reprojected if the layer's
-    CRS differs from the raster's.
+    columns), and they are streamed in Arrow batches. Each batch is turned
+    into OGR geometries directly from WKB and burned by GDAL into a raster
+    that wraps the NumPy mask, so no Python-level coordinate copies are made
+    (rasterio's rasterize converts geometries into Python mappings first,
+    which costs gigabytes for the largest coastal WDPA polygons) and memory
+    stays bounded by one batch instead of every intersecting polygon (over
+    Europe the global WDPA has ~150,000 of them). Polygons are reprojected if
+    the layer's CRS differs from the raster's. Pixels are burned when their
+    centre lies inside a polygon, as rasterio.features.geometry_mask does.
     """
     raster_crs = pyproj.CRS.from_user_input(reference_raster.rio.crs)
     layer_crs = pyproj.CRS.from_user_input(pyogrio.read_info(polygons_path)["crs"])
     bbox = transform_bounds(
         raster_crs, layer_crs, *reference_raster.rio.bounds(), densify_pts=21
     )
-    shape = reference_raster.rio.shape
-    transform = reference_raster.rio.transform()
-    mask = np.zeros(shape, dtype=bool)
+
+    mask = np.zeros(reference_raster.rio.shape, dtype=np.uint8)
+    target = gdal_array.OpenNumPyArray(mask, True)
+    target.SetGeoTransform(reference_raster.rio.transform().to_gdal())
+    target.SetProjection(raster_crs.to_wkt())
+
+    def srs(crs):
+        result = osr.SpatialReference()
+        result.ImportFromWkt(crs.to_wkt())
+        result.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
+        return result
+
+    layer_srs, raster_srs = srs(layer_crs), srs(raster_crs)
+    reprojection = (
+        None
+        if layer_crs.equals(raster_crs)
+        else osr.CoordinateTransformation(layer_srs, raster_srs)
+    )
+
     n_features = 0
     with pyogrio.open_arrow(
         polygons_path, bbox=bbox, columns=[], use_pyarrow=True, batch_size=batch_size
     ) as (meta, reader):
         for batch in reader:
-            wkb = batch.column(meta["geometry_name"] or "wkb_geometry")
-            geometries = shapely.from_wkb(wkb.to_numpy(zero_copy_only=False))
-            if not layer_crs.equals(raster_crs):
-                geometries = gpd.GeoSeries(geometries, crs=layer_crs).to_crs(raster_crs)
-            n_features += len(geometries)
-            mask |= geometry_mask(
-                geometries, out_shape=shape, transform=transform, invert=True
-            )
-            del geometries
+            wkbs = batch.column(meta["geometry_name"] or "wkb_geometry").to_pylist()
+            source = ogr.GetDriverByName("Memory").CreateDataSource("batch")
+            layer = source.CreateLayer("batch", raster_srs, ogr.wkbUnknown)
+            definition = layer.GetLayerDefn()
+            for wkb in wkbs:
+                if wkb is None:
+                    continue
+                geometry = ogr.CreateGeometryFromWkb(wkb)
+                if reprojection is not None:
+                    geometry.Transform(reprojection)
+                feature = ogr.Feature(definition)
+                feature.SetGeometry(geometry)
+                layer.CreateFeature(feature)
+                n_features += 1
+            gdal.RasterizeLayer(target, [1], layer, burn_values=[1])
+            del layer, source, wkbs
+    target.FlushCache()
+    del target
     print(f"Protected areas intersecting the reference raster: {n_features}")
-    return mask
+    return mask.astype(bool)
 
 
 @click.command()
