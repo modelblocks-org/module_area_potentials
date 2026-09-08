@@ -2,7 +2,10 @@
 
 import click
 import geopandas as gpd
+import numpy as np
 import rioxarray as rxr
+import xarray as xr
+from rasterio.features import geometry_mask
 from shapely.geometry import box
 
 
@@ -14,7 +17,12 @@ from shapely.geometry import box
 def clip_and_rasterise_polys(
     shapes_path, reference_raster_path, protected_area_path, output_path
 ):
-    """Clip the polygons in SHAPES_PATH to the bounding box of the reference raster, and save the clipped polygons as a raster to OUTPUT_PATH."""
+    """Rasterise the polygons in PROTECTED_AREA_PATH onto the grid of the reference raster.
+
+    Only polygons intersecting the reference raster are read. The output is a
+    0/1 uint8 raster on the full reference grid (1 = inside a polygon), saved
+    to OUTPUT_PATH.
+    """
     shapes = gpd.read_parquet(shapes_path)
     reference_raster = rxr.open_rasterio(reference_raster_path)
 
@@ -37,9 +45,19 @@ def clip_and_rasterise_polys(
     protected_areas = protected_areas.cx[xmin:xmax, ymin:ymax]
     print(f"Protected areas after applying total_bounds: {len(protected_areas)}")
 
-    protected_raster = reference_raster.rio.clip(
-        protected_areas.geometry, protected_areas.crs
+    # Burn the polygons into a 0/1 mask on the reference grid. rio.clip would
+    # instead mask the (lazily opened) reference raster itself, materialising a
+    # full-extent float64 copy of it; geometry_mask only ever holds one byte per
+    # pixel. Resampling this mask with averaging yields the protected fraction.
+    mask = geometry_mask(
+        protected_areas.geometry,
+        out_shape=reference_raster.rio.shape,
+        transform=reference_raster.rio.transform(),
+        invert=True,
     )
+    protected_raster = xr.zeros_like(reference_raster, dtype=np.uint8)
+    protected_raster.data[0] = mask
+    protected_raster.rio.write_nodata(None, inplace=True)
     protected_raster.rio.to_raster(output_path, driver="GTiff", compress="LZW")
 
 
