@@ -33,7 +33,9 @@ def get_area_potential(
 
     """
     shapes = gpd.read_parquet(shapes_path)
-    ds = xr.open_dataset(resampled_path, decode_coords="all")
+    # cache=False: layers are read when used and released afterwards instead
+    # of every touched layer staying resident for the whole run.
+    ds = xr.open_dataset(resampled_path, decode_coords="all", cache=False)
     # NOTE: this is a workaround for the CRS not being set correctly, ideally this
     # should not be necessary
     ds.rio.write_crs(ds.spatial_ref.attrs["crs_wkt"], inplace=True)
@@ -126,7 +128,7 @@ def get_area_potential(
     # most ~1e5 m2, where float32 error is below 0.01 m2. PREDICTOR=3 improves
     # LZW compression of float data.
     nodata_value = -1
-    potential_da = potential_da.fillna(nodata_value).astype("float32")
+    potential_da = potential_da.fillna(nodata_value).astype("float32", copy=False)
     potential_da.rio.write_nodata(nodata_value, inplace=True)
     potential_da.rio.to_raster(
         output_path, driver="GTiff", compress="LZW", predictor=3, write_nodata=True
