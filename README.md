@@ -136,6 +136,11 @@ cd tests/integration/  # navigate to the integration example
 snakemake --use-conda --cores 2  # run the workflow!
 ```
 
+Memory: the heavy rules declare `resources: mem_mb` sized for country-sized subunits (up to
+~150 million land-cover pixels, e.g. Norway with its EEZ). To keep parallel jobs within your
+machine's memory, pass the available amount, e.g. `snakemake --use-conda --cores 4 --resources mem_mb=12000`.
+Each heavy job also writes a `*.benchmark.tsv` next to its log with its runtime and peak memory.
+
 ## References
 <!-- Please provide thorough referencing below -->
 

@@ -1,3 +1,8 @@
+# Memory reservations (mem_mb) are sized for country-sized subunits of ~150
+# million reference pixels (e.g. Norway incl. its EEZ), measured in
+# claude-plans-gitignored/benchmarks.md. They only constrain scheduling when
+# a limit is given (`snakemake --resources mem_mb=<available MB>`); override
+# per rule with `--set-resources` if needed.
 import shlex
 
 
@@ -24,6 +29,8 @@ rule prepare_resampled_inputs:
     conda:
         "../envs/module.yaml"
     threads: 4
+    resources:
+        mem_mb=4500,
     params:
         # Use internal defaults if not overridden
         land_cover_types_yaml_string=internal["land_cover_types"]
@@ -60,6 +67,8 @@ rule plot_resampled_inputs:
         "<logs>/{shape}/{subunit}/plot_resampled_inputs.benchmark.tsv"
     conda:
         "../envs/module.yaml"
+    resources:
+        mem_mb=3000,
     message:
         "Plot resampled inputs for {wildcards.subunit} in {wildcards.shape}."
     script:
@@ -79,6 +88,8 @@ rule area_potential:
         "<logs>/{shape}/{subunit}/area_potential_{tech}.benchmark.tsv"
     conda:
         "../envs/module.yaml"
+    resources:
+        mem_mb=4200,
     params:
         config=lambda wildcards: config["techs"][f"{wildcards.tech}"],
         subunit_override_config=lambda wildcards: config.get("overrides", {})
@@ -105,6 +116,8 @@ rule plot_area_potential:
         "<logs>/{shape}/{subunit}/plot_area_potential_{tech}.log",
     conda:
         "../envs/module.yaml"
+    resources:
+        mem_mb=600,
     message:
         "Plot area potential for the tech {wildcards.tech} and {wildcards.subunit} in {wildcards.shape}."
     script:
@@ -123,6 +136,9 @@ rule aggregate_area_potential:
     conda:
         "../envs/module.yaml"
     threads: 4
+    resources:
+        # gdalwarp is allowed up to 3 GB of cache and warp memory below
+        mem_mb=3500,
     message:
         "Aggregate area potential for the tech {wildcards.tech} in {wildcards.shape}."
     shell:
@@ -143,6 +159,8 @@ rule plot_aggregated_area_potential:
         "<logs>/{shape}/plot_aggregated_area_potential_{tech}.log",
     conda:
         "../envs/module.yaml"
+    resources:
+        mem_mb=600,
     message:
         "Plot aggregated area potential for the tech {wildcards.tech} in {wildcards.shape}."
     script:
@@ -177,6 +195,8 @@ rule area_potential_report:
         "<logs>/{shape}/area_potential_report.benchmark.tsv"
     conda:
         "../envs/module.yaml"
+    resources:
+        mem_mb=4000,
     message:
         "Generate an overview report of the area potential for all techs in shapes {wildcards.shape}."
     script:

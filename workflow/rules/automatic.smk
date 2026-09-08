@@ -288,6 +288,8 @@ rule rasterise_clip_wdpa:
         "<logs>/{shape}/clip_wdpa.benchmark.tsv"
     conda:
         "../envs/module.yaml"
+    resources:
+        mem_mb=3000,
     message:
         "Rasterise and cut WDPA data to the bounds of the input shapefile, using the landcover raster as reference for the rasterisation."
     shell:
