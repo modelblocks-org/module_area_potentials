@@ -179,7 +179,8 @@ rule download_ship_travel:
         "Download Global Ship Density for all vessel types."
     shell:
         """
-        curl -sSLo {output:q} {params.url:q} >{log:q} 2>&1
+        # The World Bank host resets HTTP/2 streams on large transfers (curl exit 92)
+        curl --http1.1 --retry 3 -sSLo {output:q} {params.url:q} >{log:q} 2>&1
         """
 
 
