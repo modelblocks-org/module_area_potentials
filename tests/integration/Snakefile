@@ -60,7 +60,7 @@ module module_area_potentials:
         shapes="resources/inputs/shapes/{shape}.parquet",
         wdpa="resources/inputs/wdpa.gdb",
         # Redirect specific module results (outputs)
-        area_potential="results/outputs/{shape}/area_potential_{tech}.tif",
+        area_potential="results/outputs/{shape}/{scenario}/area_potential_{tech}.tif",
         # Redirect module intermediate files
         logs="resources/module/logs",
         resources="resources/module/resources",
@@ -80,6 +80,6 @@ rule all:
     default_target: True
     input:
         # The report file requires all area potential output files
-        "resources/module/results/NLD/area_potential_report.html",
+        "resources/module/results/NLD/base/area_potential_report.html",
     message:
         "Run the module for the Netherlands shapes."

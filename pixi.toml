@@ -91,7 +91,7 @@ test-integration = { cmd = "pytest tests/integration_test.py", depends-on = [
 ] }
 # Regenerate the integration reference data: run the integration workflow, then
 # freeze its report CSV. Review the resulting diff deliberately before committing.
-update-reference-integration = { cmd = "snakemake --use-conda --cores 2 && python -c 'import shutil; shutil.copy(\"resources/module/results/NLD/area_potential_report.csv\", \"../reference/NLD_area_potential_report.csv\")'", cwd = "tests/integration" }
+update-reference-integration = { cmd = "snakemake --use-conda --cores 2 && python -c 'import shutil; shutil.copy(\"resources/module/results/NLD/base/area_potential_report.csv\", \"../reference/NLD_area_potential_report.csv\")'", cwd = "tests/integration" }
 update-reference = { depends-on = [
   { task = "update-reference-unit", environment = "test-unit" },
   { task = "update-reference-integration" },

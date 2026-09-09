@@ -25,8 +25,9 @@ pathvars:
         WDPA protected areas database from https://www.protectedplanet.net/ in GeoDB format (choose 'File Geodatabase' when downloading).
   results:
     area_potential:
-      default: "<results>/{shape}/area_potential_{tech}.tif"
+      default: "<results>/{shape}/{scenario}/area_potential_{tech}.tif"
       description: "Area potential GeoTIFF raster in EPSG:4326 for the specified technology across all subunits."
 wildcards:
   shape: "Name of the shape to be processed, e.g., 'world', 'europe', 'MEX'."
   tech: "Name of the technology, e.g., 'pv_rooftop' or 'wind_offshore'. Available technologies are defined in the module configuration."
+  scenario: "Scenario name from the module configuration."

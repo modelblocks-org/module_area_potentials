@@ -99,7 +99,7 @@ def _report_csv_path(module_path):
     """Path of the report CSV produced by the integration workflow run."""
     path = (
         module_path
-        / "tests/integration/resources/module/results/NLD/area_potential_report.csv"
+        / "tests/integration/resources/module/results/NLD/base/area_potential_report.csv"
     )
     assert path.exists(), (
         "Integration workflow outputs not found; "
@@ -133,7 +133,7 @@ def test_integration_output_files_exist(module_path):
     for tech in INTEGRATION_TECHS:
         tif = (
             module_path
-            / f"tests/integration/results/outputs/NLD/area_potential_{tech}.tif"
+            / f"tests/integration/results/outputs/NLD/base/area_potential_{tech}.tif"
         )
         assert tif.exists(), f"Missing output raster: {tif}"
 
@@ -158,7 +158,11 @@ def test_integration_output_values(module_path):
         "generate it with `pixi run update-reference-integration`."
     )
     expected_rows = _read_csv_rows(reference_csv)
-    assert actual_rows[0] == expected_rows[0], "Report CSV header changed"
+    # Tech columns are named after the tif paths, which depend on where the
+    # workflow places its outputs (e.g. the scenario segment); compare basenames.
+    assert [Path(col).name for col in actual_rows[0]] == [
+        Path(col).name for col in expected_rows[0]
+    ], "Report CSV header changed"
     assert len(actual_rows) == len(expected_rows), "Report CSV row count changed"
     mismatches = [
         f"row {i} column '{actual_rows[0][j]}': {actual!r} != reference {expected!r}"

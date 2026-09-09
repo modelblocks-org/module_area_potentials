@@ -13,7 +13,7 @@ pathvars:
     shapes="<resources>/user/shapes/{shape}.parquet",
     wdpa="<resources>/user/wdpa.gdb",
     # Module results
-    area_potential="<results>/{shape}/area_potential_{tech}.tif",
+    area_potential="<results>/{shape}/{scenario}/area_potential_{tech}.tif",
 
 
 # Load the example configuration. This will be overridden by users.
@@ -36,7 +36,14 @@ workflow.source_path("scripts/_script_utils.py")
 wildcard_constraints:
     shape="[a-zA-Z0-9_-]+",
     subunit="[a-zA-Z0-9_]+",
-    tech="|".join(config["techs"].keys()),
+    scenario="|".join(config["scenarios"].keys()),
+    tech="|".join(
+        [
+            tech
+            for scenario in config["scenarios"]
+            for tech in config["scenarios"][scenario]["techs"]
+        ]
+    ),
 
 
 # Add all your includes here.

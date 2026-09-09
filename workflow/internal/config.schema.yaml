@@ -1,25 +1,16 @@
 $schema: "https://json-schema.org/draft/2020-12/schema"
-description: "Schema for user-provided configuration files."
-type: object
-additionalProperties: false
-properties:
-  tiny_files:
-    type: boolean
-    description: "If True, use smaller, clipped files for processing. If False, use full global datasets."
 
-  buffer_crs:
-    type: string
-    description: "CRS for buffering shapes. Use 'UTM' for UTM zones or 'epsg:xxxx' for a specific CRS."
-
-  split_by:
-    type: string
-    description: "Field to split the input shapes by, e.g., 'country_id'."
-
-  land_cover_types:
+$defs:
+  scenario:
     type: object
-    additionalProperties:
-      type: string
-    description: "Mapping of land cover types to their categories."
+    required:
+      - techs
+    additionalProperties: false
+    properties:
+      techs:
+        $ref: "#/$defs/techs"
+      overrides:
+        $ref: "#/$defs/overrides"
 
   techs:
     type: object
@@ -52,3 +43,40 @@ properties:
     type: object
     additionalProperties:
       type: object
+
+
+description: "Schema for user-provided configuration files."
+type: object
+required:
+  - scenarios
+  - split_by
+  - buffer_crs
+additionalProperties: false
+properties:
+  buffer_crs:
+    type: string
+    description: "CRS for buffering shapes. Use 'UTM' for UTM zones or 'epsg:xxxx' for a specific CRS."
+
+  split_by:
+    type: string
+    description: "Field to split the input shapes by, e.g., 'country_id'."
+
+  tiny_files:
+    type: boolean
+    description: "If True, use smaller, clipped files for processing. If False, use full global datasets."
+
+  land_cover_types:
+    type: object
+    additionalProperties:
+      type: string
+    description: "Mapping of land cover types to their categories."
+
+  scenarios:
+    description: >
+      Scenarios of tech configurations.
+    type: object
+    minProperties: 1
+    additionalProperties: false
+    patternProperties:
+      "^[A-Za-z0-9_-]+$":
+        $ref: "#/$defs/scenario"
