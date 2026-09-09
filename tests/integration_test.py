@@ -4,6 +4,7 @@ PLEASE ENSURE THIS SET OF MINIMAL TESTS WORKS BEFORE PUBLISHING YOUR MODULE.
 Contents may be updated in future template updates.
 """
 
+import copy
 import csv
 import math
 import subprocess
@@ -11,6 +12,7 @@ import tomllib
 from pathlib import Path
 
 import pytest
+import yaml
 from clio_tools.data_module import ModuleInterface
 
 INTEGRATION_TECHS = ["pv_rooftop", "pv_open_field", "wind_onshore", "wind_offshore"]
@@ -203,3 +205,81 @@ def test_integration_output_sanity(module_path):
     assert sum(values("wind_offshore", "land")) == pytest.approx(0, abs=1e-6)
     for tech in ["pv_rooftop", "pv_open_field", "wind_onshore"]:
         assert sum(values(tech, "maritime")) == pytest.approx(0, abs=1e-6)
+
+
+##
+# Rule-level regression tests: dry-run the integration workflow (after it has
+# run, so the breakup_shape checkpoint is resolved) and inspect the DAG and the
+# resolved shell commands. These guard config plumbing in the rules that no
+# script-level test can see.
+##
+
+
+def _dry_run(module_path, *args):
+    """Dry-run the integration workflow and return its combined output.
+
+    Only modification times decide what would rerun, so provenance changes
+    (e.g. a re-locked environment) cannot re-trigger the checkpoint and hide
+    every job downstream of it.
+    """
+    integration = module_path / "tests/integration"
+    assert (integration / "resources/module/resources/automatic/shapes/NLD").exists(), (
+        "Integration workflow outputs not found; "
+        "test_snakemake_integration_testing must run (and pass) first."
+    )
+    process = subprocess.run(
+        ["snakemake", "--dry-run", "--rerun-triggers", "mtime", *args],
+        cwd=integration,
+        capture_output=True,
+        text=True,
+    )
+    assert process.returncode == 0, process.stdout + process.stderr
+    return process.stdout + process.stderr
+
+
+def test_subunit_overrides_reach_area_potential(module_path):
+    """Per-subunit overrides configured inside a scenario are passed to the script.
+
+    Guards the override lookup in the area_potential rule: the test config
+    overrides the NLD wind_offshore land buffer, which must show up in the
+    resolved --override_config argument (and nothing must be passed for techs
+    without an override).
+    """
+    output = _dry_run(
+        module_path,
+        "--printshellcmds",
+        "--forcerun",
+        "module_area_potentials_area_potential",
+    )
+    commands = [line for line in output.splitlines() if "area_potential.py" in line]
+    assert len(commands) == len(INTEGRATION_TECHS), output
+    for command in commands:
+        # The mapping is passed through shell quoting; undo it before inspecting.
+        override = command.split("--override_config=", 1)[1].replace("'\"'\"'", "'")
+        if "area_potential_wind_offshore.tif" in command:
+            assert "'land': 2000" in override, command
+        else:
+            assert override.startswith("'{}'"), command
+
+
+@pytest.mark.parametrize("where", ["tech", "override", "nowhere"])
+def test_ship_travel_layer_activates_its_rules(module_path, tmp_path, where):
+    """A ship_travel layer in any scenario tech or override pulls in the ship-travel rules.
+
+    Guards uses_ship_travel(): the download/clip rules for the ship traffic
+    density raster are only part of the DAG when some tech uses the layer.
+    """
+    config_path = module_path / "tests/integration/test_config.yaml"
+    config = yaml.safe_load(config_path.read_text())
+    scenario = config["module_area_potentials"]["scenarios"]["base"]
+    layer = {"ship_travel": {"min": 0, "max": 21024000}}
+    if where == "tech":
+        scenario["techs"]["wind_offshore"]["continuous_layers"].update(layer)
+    elif where == "override":
+        scenario["overrides"]["NLD"]["wind_offshore"]["continuous_layers"] = layer
+    modified = tmp_path / "test_config.yaml"
+    modified.write_text(yaml.safe_dump(copy.deepcopy(config)))
+
+    output = _dry_run(module_path, "--configfile", str(modified))
+    expected = where != "nowhere"
+    assert ("module_area_potentials_clip_ship_travel" in output) == expected, output
