@@ -42,7 +42,9 @@ See below for the [data sources](#references).
 
 Please consult the configuration [README](./config/README.md) and the [configuration example](./config/config.yaml) for a general overview on the configuration options of this module.
 
-In the configuration, you can define any number of `techs`, and for each of them, specify the `initial_area`, `continuous_layers`, and `binary_layers`.
+The configuration is based on an arbitrary number of `scenarios`. Each scenario can define any number of `techs`, and for each tech, the conditions for its land use, via `initial_area`, `continuous_layers`, and `binary_layers`. Results are delivered by scenario and tech, e.g. `<results>/{shape}/{scenario}/area_potential_{tech}.tif`. Defining only a single scenario (e.g. `base`) works fine if no scenarios are needed.
+
+Per-subunit `overrides` inside a scenario can be used to override the specific settings of a tech in just one subunit (the keys of the `split_by` column, e.g. country codes). An example use of this is to provide different offshore wind distance-to-shore numbers for different countries.
 
 By example, here is a `pv_rooftop` tech. We use the `settlement_area`, which is the settlement area in m² in each pixel, as the initial area from which the further analysis proceeds. In `continuous_layers`, we use the `settlement_share`, which is the share (0-1) of area covered by settlement, and exclude pixels with less than 0.01 settlement share while assuming that of those pixels not excluded by that, 0.8 (80%) of the settled area can be used for rooftop PV. Finally, in the `binary_layers`, we include all land use types except `NOT_SUITABLE` (since the main selection is done via the settlement_share). This means that, for example, `FOREST` pixels with a `settlement_area` > 0 can be included.
 
@@ -66,7 +68,7 @@ pv_rooftop:
         landcover_WATER: 0
 ```
 
-Here is a `wind_offshore` example. We start with the `pixel_area`, the total surface area in m² for each pixel. We include pixels with a slope up to and including 20 degrees, and exclude pixels with a settlement share above 0.01. Furthermore, we include only land areas (`regions_land: 1` and `regions_maritime: 0`) and completely exclude some areas like protected areas or urban areas (`protected: 0`, `landcover_URBAN: 0`), while including only a fraction of other areas (e.g. if a pixel is considered farmland, only 20% of its surface is available: `landcover_FARM: 0.2`).
+Here is a `wind_onshore` example. We start with the `pixel_area`, the total surface area in m² for each pixel. We include pixels with a slope up to and including 20 degrees, and exclude pixels with a settlement share above 0.01. Furthermore, we include only land areas (`regions_land: 1` and `regions_maritime: 0`) and completely exclude some areas like protected areas or urban areas (`protected: 0`, `landcover_URBAN: 0`), while including only a fraction of other areas (e.g. if a pixel is considered farmland, only 20% of its surface is available: `landcover_FARM: 0.2`).
 
 ```yaml
 wind_onshore:
@@ -90,11 +92,10 @@ wind_onshore:
         landcover_WATER: 0
 ```
 
-Some of the processing in this workflow can be memory-intensive.
-The heavy rules used `resources: mem_mb` to declare their maximum memory use, which was determined based on splitting into country-sized subunits (subunits of up to about 150 million land-cover pixels, e.g. Norway with its EEZ).
-This should make it possible to parallelise the workflow while keeping it to the available memory on a given machine.
-Pass the available memory, for example, `snakemake --use-conda --cores 4 --resources mem_mb=12000`.
-To help diagnose memory useage, each heavy job also writes a `*.benchmark.tsv` next to its log with its runtime and peak memory.
+Some of the processing in this workflow is memory-intensive.
+The memory-heavy rules all specifh their expected peak memory with `resources: mem_mb`. This number was hardcoded based on an estimate of country-sized subunits, with up to about 150 million land-cover pixels.
+Snakemake only uses these declarations to control how many memory-heavy jobs are scheduled inp parallel, when you tell it how much memory is available overall (e.g., `snakemake --use-conda --cores 4 --resources mem_mb=12000`).
+To help diagnose memory usage, each heavy job also writes a `*.benchmark.tsv` next to its log file, containing its runtime, and on Linux only, peak memory.
 
 ## Input / output structure
 
@@ -144,6 +145,18 @@ pixi shell    # activate this project's environment
 cd tests/integration/  # navigate to the integration example
 snakemake --use-conda --cores 2  # run the workflow!
 ```
+
+### Module-specific unit tests
+
+Besides the integration tests, this module also supplies unit tests:
+
+```shell
+pixi run test-unit
+```
+
+The unit tests are run in the `test-unit` pixi environment which mirrors the package versions of the `module` environment. They run through every workflow script on a small synthetic dataset, then compare the outputs with committed reference data in `tests/reference/unit/`.
+
+To regenerate the reference data when results change deliverately, use `pixi run update-reference` (or `update-reference-unit` / `update-reference-integration` separately) and review the resulting diff as part of the change.
 
 ## References
 
