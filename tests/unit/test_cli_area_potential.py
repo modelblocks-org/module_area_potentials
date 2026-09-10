@@ -49,6 +49,15 @@ OFFSHORE_BUFFERED = {
     "binary_layers": {"regions_land": 0, "regions_maritime": 1},
     "shapes_buffer": {"land": 1500},
 }
+OFFSHORE_SHIP_TRAVEL = {
+    "initial_area": "pixel_area",
+    "continuous_layers": {
+        "bathymetry": {"min": -80, "max": 0},
+        # Below the fixture's maximum traffic density, so busy pixels drop out
+        "ship_travel": {"min": 0, "max": 20000},
+    },
+    "binary_layers": {"regions_land": 0, "regions_maritime": 1},
+}
 MISSING_LAYERS = {
     "initial_area": "pixel_area",
     "continuous_layers": {"not_a_continuous_layer": {"min": 0, "max": 1}},
@@ -67,6 +76,7 @@ CASES = {
     "continuous_no_share": (CONTINUOUS_NO_SHARE, "epsg:8857", None),
     "offshore_buffer_epsg": (OFFSHORE_BUFFERED, "epsg:8857", None),
     "offshore_buffer_utm": (OFFSHORE_BUFFERED, "utm", None),
+    "offshore_ship_travel": (OFFSHORE_SHIP_TRAVEL, "epsg:8857", None),
     "override_merge": (
         BINARY_OVERLAPPING,
         "epsg:8857",
@@ -227,7 +237,7 @@ def _random_config(rng, ds):
         if name.startswith("landcover_")
         or name in ["regions_land", "regions_maritime", "protected"]
     )
-    continuous_pool = ["slope_deg", "settlement_share", "bathymetry"]
+    continuous_pool = ["slope_deg", "settlement_share", "bathymetry", "ship_travel"]
     config = {
         "initial_area": str(rng.choice(["pixel_area", "settlement_area"])),
         # Always include one banded layer: the CLI requires the band dimension
@@ -302,3 +312,27 @@ def test_area_potential_tiny_grid(world, resampled_path, tmp_path):
     expected = sequential_area_potential(tiny, _parsed_config(config, None))
     expected = expected.transpose("band", "y", "x").fillna(-1.0)
     np.testing.assert_array_equal(da.values, expected.values.astype(np.float32))
+
+
+def test_area_potential_ship_travel_excludes_busy_pixels(
+    world, resampled_path, tmp_path
+):
+    """A ship_travel criterion removes maritime pixels with dense traffic."""
+    config, buffer_crs, _ = CASES["offshore_ship_travel"]
+    with_layer, _ = _run_area_potential(
+        world, resampled_path, tmp_path, config, buffer_crs, None
+    )
+    without_config = {
+        **config,
+        "continuous_layers": {
+            k: v for k, v in config["continuous_layers"].items() if k != "ship_travel"
+        },
+    }
+    without_layer, _ = _run_area_potential(
+        world, resampled_path, tmp_path, without_config, buffer_crs, None
+    )
+    with_values, without_values = with_layer.values, without_layer.values
+    # The criterion can only take potential away, never add it...
+    assert (with_values <= without_values).all()
+    # ...and in the fixture it does take some away.
+    assert (with_values > 0).sum() < (without_values > 0).sum()
