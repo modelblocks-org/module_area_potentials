@@ -10,19 +10,21 @@ import xarray as xr
 from _script_utils import plot_all_dataset_variables
 from rasterio.enums import Resampling
 
-# Matches the cap in plot_all_dataset_variables: a 6x4 inch panel at 300 dpi
-# cannot show more than ~1.2M pixels, so 2M source pixels are lossless.
-MAX_PIXELS = 2_000_000
+MAX_PIXELS = 2_000_000  # Matches the cap in plot_all_dataset_variables
 
 
 def read_decimated(tif_file, max_pixels=MAX_PIXELS):
-    """Read a single-band raster at a resolution of at most ``max_pixels``.
+    """Read a single-band raster with at most ``max_pixels`` pixels in total.
 
-    Reading through GDAL's decimated I/O averages blocks on the fly, so the
-    full-resolution raster is never held in memory (plotting a country-group
-    mosaic previously needed several GB just to coarsen it).
+    Reading through GDAL's decimated I/O means that blocks are averaged on the fly.
+    Therefore, the full-resolution raster is never held in memory, saving GBs of RAM
+    on large plots.
+
+    Returns a float32 ``(y, x)`` DataArray with pixel-centre coordinates and the
+    raster's CRS, and NaN where the source has no data.
+
     """
-    # A small block cache: GDAL would otherwise keep decoded blocks of the
+    # Specify a block cache of 256 MB. GDAL would otherwise keep decoded blocks of the
     # full-resolution raster around (default cache is 5% of RAM).
     with rasterio.Env(GDAL_CACHEMAX=256), rasterio.open(tif_file) as src:
         factor = max(1, math.ceil(math.sqrt(src.width * src.height / max_pixels)))

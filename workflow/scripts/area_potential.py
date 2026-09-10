@@ -48,9 +48,8 @@ def get_area_potential(
     # Start with the configured pixel area as a base
     potential_da = ds[config["initial_area"]].squeeze(drop=True)  # Drop `band`
 
-    # All zero-out criteria are accumulated into a single boolean keep-mask and
-    # applied in one .where() call: boolean masks are cheap, while each
-    # .where() on the potential would copy the full float array.
+    # `keep` is a boolean "to keep"-mask used to accumulate all "zero-out" criteria, which
+    # can then be applied in a single .where() call at the very end
     keep = None
 
     def _all_of(mask, condition):
@@ -80,9 +79,7 @@ def get_area_potential(
     if keep is not None:
         potential_da = potential_da.where(keep, other=0)
 
-    # If a share is defined for a continuous layer, multiply the pixel area by
-    # the share (in configuration order, to stay bit-identical with the
-    # previous per-layer chain)
+    # If a share is defined for a continuous layer, multiply the pixel area by the share
     for layer, layer_config in continuous_layers.items():
         if layer in ds and "share" in layer_config:
             potential_da = potential_da * layer_config["share"]
@@ -109,10 +106,8 @@ def get_area_potential(
             else:
                 buffer = shapes_subset.to_crs(buffer_crs).buffer(buffer_distance)
 
-            # Clip the potential area with the buffered shapes. drop=False
-            # keeps the output grid identical across techs (with drop=True the
-            # raster is cropped to the inverse-mask extent) and skips the crop
-            # work; clipped-out pixels become nodata.
+            # Clip the potential area with the buffered shapes. drop=False keeps the
+            # output grid identical across techs - clipped-out pixels become nodata.
             potential_da.rio.write_crs(ds.rio.crs, inplace=True)
             buffer_geo = gpd.GeoDataFrame(geometry=buffer).to_crs(ds.rio.crs)
             potential_da = potential_da.rio.clip(
@@ -123,13 +118,12 @@ def get_area_potential(
     potential_da = potential_da.transpose("band", "y", "x")
     potential_da.rio.write_crs(ds.rio.crs, inplace=True)
 
-    # Fill NaN with a nodata value.
-    # float32 halves the file size and downstream I/O; per-pixel areas are at
-    # most ~1e5 m2, where float32 error is below 0.01 m2. PREDICTOR=3 improves
-    # LZW compression of float data.
+    # Fill NaN with a nodata value and coerce to float32, which halves the file size
+    # while keeping the per-pixel error below 0.01
     nodata_value = -1
     potential_da = potential_da.fillna(nodata_value).astype("float32", copy=False)
     potential_da.rio.write_nodata(nodata_value, inplace=True)
+    # PREDICTOR=3 improves LZW compression of float data
     potential_da.rio.to_raster(
         output_path, driver="GTiff", compress="LZW", predictor=3, write_nodata=True
     )

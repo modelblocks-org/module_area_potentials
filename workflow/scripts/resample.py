@@ -50,10 +50,14 @@ GLOBCOVER_TYPES = {
 def land_cover_category_ids(ds_land_cover, land_cover_types):
     """Map GlobCover codes to small category ids in one vectorised pass.
 
-    Returns ``(mapped, category_ids)``: a uint8 array of the land cover's shape
-    holding the id of each pixel's category, and the ``{category: id}`` dict.
+    Returns ``(mapped, category_ids)``:
+        `mapped`: a uint8 array shaped like ds_land_cover, holding the `id` of
+                  each pixel's category
+        `category_ids`: a dict mapping `category` to `id`
+
     Codes without a category (not in GLOBCOVER_TYPES) map to the sentinel 0
     and belong to no category.
+
     """
     data = ds_land_cover.data
     categories = sorted(set(land_cover_types.values()))
@@ -76,11 +80,7 @@ def land_cover_mask(ds_land_cover, mapped, category_id):
 
 
 def aggregate_land_cover_types(ds_land_cover, land_cover_types):
-    """Convert raw GlobCover data to a dataset with suitable land cover types.
-
-    One int8 membership mask per configured category, keeping everything in
-    small integer dtypes.
-    """
+    """Turn a GlobCover class raster into a Dataset of per-category membership masks."""
     mapped, category_ids = land_cover_category_ids(ds_land_cover, land_cover_types)
     suitable_land_cover = xr.Dataset(coords=ds_land_cover.coords)
     for type_, category_id in category_ids.items():
@@ -143,24 +143,33 @@ def determine_pixel_areas(raster_input):
     return pixel_area_da
 
 
-def _warp_from_file(path, reference_raster, prepare, num_threads=1, warp_nodata=None):
-    """Warp one input raster onto the reference grid with average resampling.
+def _warp_from_file(
+    input_raster_path, reference_raster, prepare, num_threads=1, warp_nodata=None
+):
+    """Warp an input raster from file onto the reference grid with average resampling.
 
-    Only the window of ``path`` covering the reference grid (plus a halo of two
-    source pixels, all that average resampling can touch) is read, in its
-    native dtype; ``prepare(data, nodata, transform)`` turns it into the
-    float32 array to warp (NaN where there is no data). ``warp_nodata`` is the
-    nodata value declared to the warp (``"file"`` for the source file's own):
-    such source pixels are left out of the averages, whereas any other NaN
-    poisons the target pixels it touches. Each input keeps the behaviour it had
-    when the inputs were warped as xarray objects (where a preceding arithmetic
-    step decided whether the nodata tag survived).
+    This function goes through the following procedure:
 
-    Reading the window with rasterio and warping the bare array keeps peak
-    memory at roughly two copies of the source window, instead of the four to
-    five copies that lazily decoded xarray inputs plus reproject_match needed.
+    - Reads the window of ``input_raster_path`` covering the reference grid (plus a
+      two-pixel buffer) in its native dtype.
+    - Lets ``prepare(data, nodata, transform)`` turn it into the float32 array to
+      warp, and assigns NaN where there is no useful value.
+    - Warps the prepared array.
+
+    This process reduces the copies held in memory compared to xarray + reproject_match.
+
+    ``num_threads`` is passed on to GDAL's warp.
+
+    ``warp_nodata`` is the nodata value declared to GDAL. Set it to ``None``, ``"file"``
+    for the source file's own, or an explicit value. Declared nodata pixels
+    are excluded from the averages; any other NaN turns every target pixel it
+    touches into NaN.
+
+    Returns a float32 ``(band, y, x)`` DataArray on the reference grid, with
+    the reference CRS written and NaN wherever the warp produced no value.
+
     """
-    with rasterio.open(path) as src:
+    with rasterio.open(input_raster_path) as src:
         xmin, ymin, xmax, ymax = reference_raster.rio.bounds()
         pad = 2 * max(abs(res) for res in src.res)
         window = from_bounds(
@@ -216,7 +225,7 @@ def _masked_float32(data, nodata, _transform, rows_per_chunk=1024):
 class _NetcdfWriter:
     """Write variables to a NetCDF file one at a time.
 
-    Holding every resampled layer in memory before a single ``to_netcdf`` made
+    Holding every resampled layer in memory before a single ``to_netcdf`` would make
     the peak memory of this script proportional to the *sum* of all outputs
     (several GB for country-sized subunits). Appending variables as soon as
     they are computed bounds it to the largest single layer pipeline instead.
@@ -315,11 +324,11 @@ def resample_inputs(
     reference_raster = xr.ones_like(ds_land_cover, dtype=np.byte)
     reference_resolution = ds_land_cover.rio.resolution()
     print(f"Land cover resolution used as reference resolution: {reference_resolution}")
-    # The warped inputs come first: the slope warp is the largest single
+
+    # Below, we go through the different inputs one by one.
+    # The warped inputs come first. The slope warp is the largest single memory
     # allocation of this script, and running it before anything else is
-    # resident keeps the peak memory to that one stage.
-    # One value per row (dims: y); broadcast against x only when written.
-    pixel_area = determine_pixel_areas(reference_raster).astype(np.float32)
+    # resident in memory keeps the peak memory to that one stage.
 
     ##
     # Slope: GEDTM30 stores degrees * 100 as uint16
@@ -338,6 +347,10 @@ def resample_inputs(
     ##
     # Settlement in sum of area of built-up surface (m2)
     ##
+
+    # One value per row (dims: y); broadcast against x only when written.
+    pixel_area = determine_pixel_areas(reference_raster).astype(np.float32)
+
     def prepare_settlement(data, nodata, transform):
         # Divide built-up surface (m2) by the source pixel area (m2) to get the
         # built-up share; both operands float32 so the result stays float32.

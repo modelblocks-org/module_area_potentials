@@ -9,7 +9,10 @@ import rasterio
 import rasterio.windows
 from rasterio.features import rasterize
 
-STRIP_ROWS = 1024
+# Rows per processing window, which are full-width strips with the number of rows
+# defined here. The purpose of this is to bound memory use by iteratively aggregating
+# summary data one window at a time.
+ROWS_PER_WINDOW = 1024
 
 
 def report(shapes, area_potentials, csv_path, html_path):
@@ -21,9 +24,9 @@ def report(shapes, area_potentials, csv_path, html_path):
         reference_transform = src.transform
         windows = [
             rasterio.windows.Window(
-                0, row, src.width, min(STRIP_ROWS, src.height - row)
+                0, row, src.width, min(ROWS_PER_WINDOW, src.height - row)
             )
-            for row in range(0, src.height, STRIP_ROWS)
+            for row in range(0, src.height, ROWS_PER_WINDOW)
         ]
 
     # Sums (and pixel counts) per region are accumulated strip by strip: the
@@ -73,8 +76,9 @@ def report(shapes, area_potentials, csv_path, html_path):
             src.close()
     columns = sums
 
-    # Regions owning no pixel were never part of the groupby-based report;
-    # keep them out.
+    # Drop shapes that received no pixel at all (smaller than the grid can
+    # resolve). Bincount reports them as 0.0, which would read as "no
+    # potential", when in fact nothing is known about them.
     df = pd.DataFrame(columns, index=shapes.index.astype(float))
     df = df[pixel_counts > 0].sort_index()
     df.index.name = "group"

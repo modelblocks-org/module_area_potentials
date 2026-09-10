@@ -29,10 +29,7 @@ def random_categorical_cmap(n, base_cmap="tab20", seed=42):
 
 def plot_with_zero_separate(ax, da, cmap="viridis", zero_color="#e0e0e0"):
     """Plot data array with zero values in a separate color."""
-    # The data is always on a regular grid, where drawing an image is far
-    # faster and lighter than pcolormesh's per-pixel quadrilaterals. imshow
-    # needs strictly 2D data, so size-1 dims (band) must be squeezed.
-    da = da.squeeze()
+    da = da.squeeze()  # imshow needs 2D data, so size-1 dims (band) are squeezed
     da.where(da != 0).plot.imshow(ax=ax, cmap=cmap)
     da.where(da == 0).plot.imshow(
         ax=ax, cmap=mcolors.ListedColormap([zero_color]), add_colorbar=False
@@ -43,8 +40,7 @@ def plot_with_zero_separate(ax, da, cmap="viridis", zero_color="#e0e0e0"):
 def plot_all_dataset_variables(ds, ncols=2, savefig=None, categorical_vars=[]):
     """Plot all variables in an xarray dataset on a grid of plots."""
     # If needed, resample `ds` to fit within a maximum of `max_pixels` pixels.
-    # A 6x4 inch panel at dpi 300 shows at most ~1.2M device pixels in its data
-    # region, so 2M source pixels per panel are lossless with headroom.
+    # 2 million pixels per panel is sufficient for our targeted plot sizes
     max_pixels = 2000000
     total_pixels = ds.sizes["y"] * ds.sizes["x"]
     if total_pixels > max_pixels:
@@ -91,9 +87,9 @@ def plot_all_dataset_variables(ds, ncols=2, savefig=None, categorical_vars=[]):
     fig.tight_layout()
 
     if savefig:
-        # fig.savefig (not plt.savefig) skips pyplot's post-save re-render, and
-        # omitting bbox_inches="tight" skips a measuring pre-render: one full
-        # figure render instead of three.
+        # This call contains two optimisations for speed:
+        # 1. fig.savefig (rather than plt.savefig) disables pyplot's post-save re-render.
+        # 2. Omitting bbox_inches="tight" skips a measurement pre-render step.
         fig.savefig(savefig, dpi=300)
 
     return fig

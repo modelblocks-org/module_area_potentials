@@ -8,6 +8,7 @@ This module performs geospatial analyses to determine the available land area fo
 </p>
 
 ## About
+
 <!-- Please do not modify this templated section -->
 
 This is a modular `snakemake` workflow created as part of the [Modelblocks project](https://www.modelblocks.org/). It can be imported directly into any `snakemake` workflow.
@@ -17,6 +18,7 @@ the [integration example](./tests/integration/Snakefile),
 and the `snakemake` [documentation](https://snakemake.readthedocs.io/en/stable/snakefiles/modularization.html).
 
 ## Overview
+
 <!-- Please describe the processing stages of this module here -->
 
 Data processing steps:
@@ -25,17 +27,17 @@ Data processing steps:
   <img src="./figures/rulegraph.png" width="66%">
 </p>
 
-
-* Geospatial input data (vector and raster) are acquired. This is automatic for most data, but the following data need to be manually supplied:
-  * Geographic boundaries in the parquet format
-  * WDPA protected areas database from https://www.protectedplanet.net/ in GeoDB format (choose 'File Geodatabase' when downloading).
-* For the extent of the provided boundaries, the input data are reprojected and rasterised to the resolution of the land cover data (GlobCover), and merged into a single dataset for further processing.
-* Based on the supplied configuration, the land-use analysis is done for each defined technology.
-* Results can be reported on a per-geography and per-technology basis, as pixel surface area values (TIFF files), images for reporting purposes (PNG files), and also as a summary report with per-region capacities (CSV and HTML files)
+- Geospatial input data (vector and raster) are acquired. This is automatic for most data, but the following data need to be manually supplied:
+    - Geographic boundaries in the parquet format
+    - WDPA protected areas database from https://www.protectedplanet.net/ in GeoDB format (choose 'File Geodatabase' when downloading).
+- For the extent of the provided boundaries, the input data are reprojected and rasterised to the resolution of the land cover data (GlobCover), and merged into a single dataset for further processing.
+- Based on the supplied configuration, the land-use analysis is done for each defined technology.
+- Results can be reported on a per-geography and per-technology basis, as pixel surface area values (TIFF files), images for reporting purposes (PNG files), and also as a summary report with per-region capacities (CSV and HTML files)
 
 See below for the [data sources](#references).
 
 ## Configuration
+
 <!-- Please describe how to configure this module below -->
 
 Please consult the configuration [README](./config/README.md) and the [configuration example](./config/config.yaml) for a general overview on the configuration options of this module.
@@ -46,56 +48,62 @@ By example, here is a `pv_rooftop` tech. We use the `settlement_area`, which is 
 
 ```yaml
 pv_rooftop:
-  initial_area: settlement_area
-  continuous_layers:
-    settlement_share:
-      min: 0.01
-      max: 1
-      share: 0.8
-  binary_layers:
-    regions_maritime: 0
-    regions_land: 1
-    protected: 0
-    landcover_FARM: 1
-    landcover_FOREST: 1
-    landcover_URBAN: 1
-    landcover_OTHER: 1
-    landcover_NOT_SUITABLE: 0
-    landcover_WATER: 0
+    initial_area: settlement_area
+    continuous_layers:
+        settlement_share:
+            min: 0.01
+            max: 1
+            share: 0.8
+    binary_layers:
+        regions_maritime: 0
+        regions_land: 1
+        protected: 0
+        landcover_FARM: 1
+        landcover_FOREST: 1
+        landcover_URBAN: 1
+        landcover_OTHER: 1
+        landcover_NOT_SUITABLE: 0
+        landcover_WATER: 0
 ```
 
 Here is a `wind_offshore` example. We start with the `pixel_area`, the total surface area in m² for each pixel. We include pixels with a slope up to and including 20 degrees, and exclude pixels with a settlement share above 0.01. Furthermore, we include only land areas (`regions_land: 1` and `regions_maritime: 0`) and completely exclude some areas like protected areas or urban areas (`protected: 0`, `landcover_URBAN: 0`), while including only a fraction of other areas (e.g. if a pixel is considered farmland, only 20% of its surface is available: `landcover_FARM: 0.2`).
 
 ```yaml
 wind_onshore:
-  initial_area: pixel_area
-  continuous_layers:
-    slope_deg:
-      min: 0
-      max: 20
-    settlement_share:
-      min: 0
-      max: 0.01
-  binary_layers:
-    regions_maritime: 0
-    regions_land: 1
-    protected: 0
-    landcover_FARM: 0.2
-    landcover_FOREST: 0.05
-    landcover_URBAN: 0
-    landcover_OTHER: 0.3
-    landcover_NOT_SUITABLE: 0
-    landcover_WATER: 0
-
+    initial_area: pixel_area
+    continuous_layers:
+        slope_deg:
+            min: 0
+            max: 20
+        settlement_share:
+            min: 0
+            max: 0.01
+    binary_layers:
+        regions_maritime: 0
+        regions_land: 1
+        protected: 0
+        landcover_FARM: 0.2
+        landcover_FOREST: 0.05
+        landcover_URBAN: 0
+        landcover_OTHER: 0.3
+        landcover_NOT_SUITABLE: 0
+        landcover_WATER: 0
 ```
 
+Some of the processing in this workflow can be memory-intensive.
+The heavy rules used `resources: mem_mb` to declare their maximum memory use, which was determined based on splitting into country-sized subunits (subunits of up to about 150 million land-cover pixels, e.g. Norway with its EEZ).
+This should make it possible to parallelise the workflow while keeping it to the available memory on a given machine.
+Pass the available memory, for example, `snakemake --use-conda --cores 4 --resources mem_mb=12000`.
+To help diagnose memory useage, each heavy job also writes a `*.benchmark.tsv` next to its log with its runtime and peak memory.
 
 ## Input / output structure
+
 <!-- Please describe input / output file placement below -->
 
 Please consult the [interface file](./INTERFACE.yaml) for more information.
 
 ## Development
+
 <!-- Please do not modify this templated section -->
 
 We use [`pixi`](https://pixi.sh/) as our package manager for development.
@@ -108,18 +116,19 @@ pixi install --all
 ```
 
 Please be aware that this is a multi-environment project (see [pixi.toml](./pixi.toml) for details).
+
 - `default`: used for development and integration testing.
-Because it contains `Snakemake`, `conda` and `pytest` as dependencies it **should not be used** in `Snakemake` rules.
+  Because it contains `Snakemake`, `conda` and `pytest` as dependencies it **should not be used** in `Snakemake` rules.
 - `module`: contains minimal dependencies used in `Snakemake` rules.
-If modified, be sure to export it to `Snakemake` so it can be recreated by module users:
+  If modified, be sure to export it to `Snakemake` so it can be recreated by module users:
 
 ```shell
 # create module.yaml and conda-spec pin files in workflow/envs/
 pixi run export-snakemake-env module
 ```
 
-
 ## Testing
+
 <!-- Please do not modify this templated section -->
 
 For testing, simply run:
@@ -136,28 +145,24 @@ cd tests/integration/  # navigate to the integration example
 snakemake --use-conda --cores 2  # run the workflow!
 ```
 
-Memory: the heavy rules declare `resources: mem_mb` sized for country-sized subunits (up to
-~150 million land-cover pixels, e.g. Norway with its EEZ). To keep parallel jobs within your
-machine's memory, pass the available amount, e.g. `snakemake --use-conda --cores 4 --resources mem_mb=12000`.
-Each heavy job also writes a `*.benchmark.tsv` next to its log with its runtime and peak memory.
-
 ## References
+
 <!-- Please provide thorough referencing below -->
 
 This module is based on the following research and datasets:
 
-* [GEDTM30](https://github.com/openlandmap/GEDTM30) for slope
-    * License: Creative Commons Attribution 4.0 International
-* [GlobCover land cover data](https://due.esrin.esa.int/page_globcover.php)
-    * License: "You may use the GlobCover land cover map for educational and/or scientific purposes, without any fee on the condition that you credit ESA and the Université Catholique de Louvain as the source of the GlobCover products."
-* [GEBCO (General Bathymetric Chart of the Oceans)](https://www.gebco.net/data-products/gridded-bathymetry-data) 15 arc-second data
-    * License: "The GEBCO Grid is placed in the public domain and may be used free of charge. [...] Users must: Acknowledge the source of The GEBCO Grid. A suitable form of attribution is given in the documentation that accompanies The GEBCO Grid."
-* [GHSL (Global Human Settlement Layer)](https://human-settlement.emergency.copernicus.eu/download.php) built-up surface data (R2023, GHS-BUILT-S, 100m resolution)
-    * License: "The GHSL has been produced by the EC JRC as open and free data. Reuse is authorised, provided the source is acknowledged."
-* [World Bank Global Shipping Traffic Density](https://datacatalog.worldbank.org/search/dataset/0037580/global-shipping-traffic-density), the number of AIS-recorded vessel positions per square kilometre accumulated over 2015–2021
-    * License: Creative Commons Attribution 4.0 International (CC BY 4.0)
-* [WDPA (World Database on Protected Areas)](https://www.protectedplanet.net/)
-    * License: Non-commercial allowed. Citation: "UNEP-WCMC and IUCN (2025), Protected Planet: The World Database on Protected Areas (WDPA) and World Database on Other Effective Area-based Conservation Measures (WD-OECM) [Online], June 2025, Cambridge, UK: UNEP-WCMC and IUCN. Available at: www.protectedplanet.net."
+- [GEDTM30](https://github.com/openlandmap/GEDTM30) for slope
+    - License: Creative Commons Attribution 4.0 International
+- [GlobCover land cover data](https://due.esrin.esa.int/page_globcover.php)
+    - License: "You may use the GlobCover land cover map for educational and/or scientific purposes, without any fee on the condition that you credit ESA and the Université Catholique de Louvain as the source of the GlobCover products."
+- [GEBCO (General Bathymetric Chart of the Oceans)](https://www.gebco.net/data-products/gridded-bathymetry-data) 15 arc-second data
+    - License: "The GEBCO Grid is placed in the public domain and may be used free of charge. [...] Users must: Acknowledge the source of The GEBCO Grid. A suitable form of attribution is given in the documentation that accompanies The GEBCO Grid."
+- [GHSL (Global Human Settlement Layer)](https://human-settlement.emergency.copernicus.eu/download.php) built-up surface data (R2023, GHS-BUILT-S, 100m resolution)
+    - License: "The GHSL has been produced by the EC JRC as open and free data. Reuse is authorised, provided the source is acknowledged."
+- [World Bank Global Shipping Traffic Density](https://datacatalog.worldbank.org/search/dataset/0037580/global-shipping-traffic-density), the number of AIS-recorded vessel positions per square kilometre accumulated over 2015–2021
+    - License: Creative Commons Attribution 4.0 International (CC BY 4.0)
+- [WDPA (World Database on Protected Areas)](https://www.protectedplanet.net/)
+    - License: Non-commercial allowed. Citation: "UNEP-WCMC and IUCN (2025), Protected Planet: The World Database on Protected Areas (WDPA) and World Database on Other Effective Area-based Conservation Measures (WD-OECM) [Online], June 2025, Cambridge, UK: UNEP-WCMC and IUCN. Available at: www.protectedplanet.net."
 
 ## Contributors ✨
 

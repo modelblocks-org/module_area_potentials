@@ -19,19 +19,14 @@ BATCH_SIZE = 500
 
 
 def rasterise_polygons(polygons_path, reference_raster, batch_size=BATCH_SIZE):
-    """Burn the polygons intersecting the reference grid into a 0/1 mask.
+    """Burn the polygons intersecting the reference grid into a boolean mask.
 
-    Only features intersecting the reference bounds are read (the driver's
-    spatial index does the filtering), only their geometries (no attribute
-    columns), and they are streamed in Arrow batches. Each batch is turned
-    into OGR geometries directly from WKB and burned by GDAL into a raster
-    that wraps the NumPy mask, so no Python-level coordinate copies are made
-    (rasterio's rasterize converts geometries into Python mappings first,
-    which costs gigabytes for the largest coastal WDPA polygons) and memory
-    stays bounded by one batch instead of every intersecting polygon (over
-    Europe the global WDPA has ~150,000 of them). Polygons are reprojected if
-    the layer's CRS differs from the raster's. Pixels are burned when their
-    centre lies inside a polygon, as rasterio.features.geometry_mask does.
+    This function streams the geometry of features intersecting the reference_raster's
+    bounds in Arrow batches. It turns each batch into OGR geometries and burns these
+    (via GDAL) into a raster that wraps a NumPy mask. By implementing this directly and
+    sidestepping rasterio's `rasterize`, memory use and computation time are greatly
+    reduced. Polygons in a different CRS are reprojected on the fly.
+
     """
     raster_crs = pyproj.CRS.from_user_input(reference_raster.rio.crs)
     layer_crs = pyproj.CRS.from_user_input(pyogrio.read_info(polygons_path)["crs"])
@@ -92,12 +87,13 @@ def rasterise_polygons(polygons_path, reference_raster, batch_size=BATCH_SIZE):
 def clip_and_rasterise_polys(
     shapes_path, reference_raster_path, protected_area_path, output_path
 ):
-    """Rasterise the polygons in PROTECTED_AREA_PATH onto the grid of the reference raster.
+    """Rasterise the polygons in PROTECTED_AREA_PATH onto reference raster grid.
 
-    Only polygons intersecting the reference raster are read. The output is a
-    0/1 uint8 raster on the full reference grid (1 = inside a polygon), saved
-    to OUTPUT_PATH; resampling it with averaging yields the protected fraction
-    of a pixel. SHAPES_PATH is accepted for interface compatibility.
+    A 0/1 uint8 raster on the full reference grid (1 = inside a polygon) is saved to
+    OUTPUT_PATH. No resampling happens here. Resample.py later warps this
+    raster onto the subunit grid with average resampling, which turns the 0/1
+    values into the protected fraction of each pixel.
+    SHAPES_PATH is accepted for interface compatibility but not used.
     """
     reference_raster = rxr.open_rasterio(reference_raster_path)
 

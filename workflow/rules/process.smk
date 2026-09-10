@@ -1,8 +1,9 @@
-# Memory reservations (mem_mb) are sized for country-sized subunits of ~150
-# million reference pixels (e.g. Norway incl. its EEZ), measured in
-# claude-plans-gitignored/benchmarks.md. They only constrain scheduling when
-# a limit is given (`snakemake --resources mem_mb=<available MB>`); override
-# per rule with `--set-resources` if needed.
+# Note: memory reservations (mem_mb) are sized for country-sized subunits of ~150
+# million reference pixels (this covers e.g. Norway including its EEZ).
+# They only constrain scheduling when snakemake is given a limit:
+# `snakemake --resources mem_mb=<available MB>`
+# Override per rule with `--set-resources` if needed.
+
 import shlex
 
 

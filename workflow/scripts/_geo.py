@@ -26,12 +26,10 @@ def get_utm_crs_from_lonlat(lon, lat):
 def apply_utm_buffer(gdf, buffer_distance_m=10000):
     """Apply a UTM-based buffer to a GeoDataFrame with an arbitrary CRS.
 
-    The most appropriate UTM zone is chosen per geometry from its centroid;
-    geometries are then grouped by zone and each group is projected, buffered
-    and re-projected in one vectorised operation (instead of constructing a
-    single-row GeoDataFrame and two projection pipelines per geometry).
-    Geometries that cannot be buffered (e.g. centroid outside the UTM latitude
-    range) produce a warning and None, as before.
+    The most appropriate UTM zone is chosen per geometry from its centroid.
+    Geometries are then grouped by UTM zone, and each group is projected, buffered
+    and re-projected in one vectorised operation. Geometries that cannot be buffered
+    (e.g. centroid outside the UTM latitude range) produce a warning and None.
 
     Args:
         gdf (geopandas.GeoDataFrame): The GeoDataFrame containing geometries to buffer.
