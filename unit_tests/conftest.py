@@ -2,8 +2,8 @@
 
 Makes the workflow scripts importable (they are plain scripts, not a package)
 and provides the reference-data machinery: tests compare computed outputs
-against files committed under ``tests/reference/unit/``, which are regenerated
-with ``pytest tests/unit --update-reference`` (``pixi run update-reference-unit``).
+against files committed under ``unit_tests/reference/``, which are regenerated
+with ``pytest unit_tests --update-reference`` (``pixi run update-reference-unit``).
 """
 
 import os
@@ -14,7 +14,7 @@ from pathlib import Path
 # before any of them is imported.
 os.environ.setdefault("MPLBACKEND", "Agg")
 
-REPO_ROOT = Path(__file__).parent.parent.parent
+REPO_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(REPO_ROOT / "workflow" / "scripts"))
 
 import fixtures  # noqa: E402
@@ -23,7 +23,7 @@ import pandas as pd  # noqa: E402
 import pytest  # noqa: E402
 import yaml  # noqa: E402
 
-REFERENCE_DIR = REPO_ROOT / "tests" / "reference" / "unit"
+REFERENCE_DIR = Path(__file__).parent / "reference"
 
 
 def pytest_addoption(parser):

@@ -154,9 +154,9 @@ Besides the integration tests, this module also supplies unit tests:
 pixi run test-unit
 ```
 
-The unit tests are run in the `test-unit` pixi environment which mirrors the package versions of the `module` environment. They run through every workflow script on a small synthetic dataset, then compare the outputs with committed reference data in `tests/reference/unit/`.
+The unit tests are run in an isolated `test-unit` Pixi environment that combines `pytest` with the `module` feature. They run through every workflow script on a small synthetic dataset, then compare the outputs with committed reference data in `unit_tests/reference/`.
 
-To regenerate the reference data when results change deliverately, use `pixi run update-reference` (or `update-reference-unit` / `update-reference-integration` separately) and review the resulting diff as part of the change.
+To regenerate the reference data when results change deliberately, use `pixi run update-reference` (or `update-reference-unit` / `update-reference-integration` separately) and review the resulting diff as part of the change.
 
 ## References
 

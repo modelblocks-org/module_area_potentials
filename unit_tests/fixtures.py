@@ -18,7 +18,7 @@ from click.testing import CliRunner
 from resample import GLOBCOVER_TYPES
 from shapely.geometry import box
 
-REPO_ROOT = Path(__file__).parent.parent.parent
+REPO_ROOT = Path(__file__).parent.parent
 LAND_COVER_TYPES = yaml.safe_load(
     (REPO_ROOT / "workflow" / "internal" / "settings.yaml").read_text()
 )["land_cover_types"]

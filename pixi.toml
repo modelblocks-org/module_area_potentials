@@ -52,50 +52,38 @@ numpy = ">=2.3.5"
 
 [feature.test-unit.dependencies]
 pytest = ">=8.3.5"
-python = "3.13.14.*"
-click = "8.2.1.*"
-geopandas = "1.1.0.*"
-pandas = "2.3.0.*"
-pandera-geopandas = "0.24.0.*"
-pyarrow = "19.0.1.*"
-xarray = "2025.6.1.*"
-netcdf4 = "1.7.2.*"
-fiona = "1.10.1.*"
-rasterio = "1.4.3.*"
-rioxarray = "0.19.0.*"
-gdal = "3.10.3.*"
-libgdal-arrow-parquet = "3.10.3.*"
-libgdal-hdf5 = "3.10.3.*"
-matplotlib = "3.10.3.*"
-pyyaml = "6.0.3.*"
-pyproj = "3.7.1.*"
-utm = "0.7.0.*"
-glom = "24.11.0.*"
-dask = "2025.7.0.*"
-numpy = "2.3.5.*"
 
 [feature.test-unit.tasks]
-test-unit = "pytest tests/unit"
-update-reference-unit = "pytest tests/unit --update-reference"
+test-unit = "pytest unit_tests"
+update-reference-unit = "pytest unit_tests --update-reference"
 
 [environments]
-module = { features = ["module"], no-default-feature = true }
-# Unit tests for workflow/scripts need the script runtime dependencies. They are
-# pinned to the versions locked in workflow/envs/module.*.pin.txt (enforced by
-# tests/unit/test_env_sync.py) so the tests run on the same stack as the workflow.
-test-unit = { features = ["test-unit"], no-default-feature = true }
+module = { features = ["module"], no-default-feature = true, solve-group = "module" }
+# Unit tests exercise workflow scripts directly, so they combine pytest with the
+# module runtime dependencies while remaining isolated from the default environment.
+test-unit = { features = ["test-unit", "module"], no-default-feature = true, solve-group = "module" }
 
-[tasks]
-test-integration = { cmd = "pytest tests/integration_test.py", depends-on = [
+[tasks.test-integration]
+cmd = "pytest tests/integration_test.py"
+depends-on = [
   { task = "test-unit", environment = "test-unit" },
-] }
+]
+
 # Regenerate the integration reference data: run the integration workflow, then
 # freeze its report CSV. Review the resulting diff deliberately before committing.
-update-reference-integration = { cmd = "snakemake --use-conda --cores 2 && python -c 'import shutil; shutil.copy(\"resources/module/results/NLD/base/area_potential_report.csv\", \"../reference/NLD_area_potential_report.csv\")'", cwd = "tests/integration" }
-update-reference = { depends-on = [
+[tasks.update-reference-integration]
+cwd = "tests/integration"
+cmd = """
+set -e
+snakemake --use-conda --cores 2
+python -c 'import shutil; shutil.copy("resources/module/results/NLD/base/area_potential_report.csv", "../reference/NLD_area_potential_report.csv")'
+"""
+
+[tasks.update-reference]
+depends-on = [
   { task = "update-reference-unit", environment = "test-unit" },
-  { task = "update-reference-integration" },
-] }
+  { task = "update-reference-integration", environment = "default" },
+]
 
 
 [tasks.export-snakemake-env]
