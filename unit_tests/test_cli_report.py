@@ -9,7 +9,6 @@ import fixtures
 import numpy as np
 import pandas as pd
 import pytest
-import rioxarray as rxr
 from rasterio.features import rasterize
 from report import report
 
@@ -55,7 +54,7 @@ def test_report_matches_naive_region_sums(report_outputs):
     shapes, csv_path, _ = report_outputs
     df = pd.read_csv(csv_path, index_col=0)
     for tech_file in TECH_FILES:
-        da = rxr.open_rasterio(tech_file).squeeze(drop=True)
+        da = fixtures.load_raster(tech_file).squeeze(drop=True)
         values = np.where(da.values == NODATA, np.nan, da.values)
         regions = rasterize(
             zip(shapes.geometry, shapes.index),

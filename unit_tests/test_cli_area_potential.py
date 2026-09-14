@@ -14,7 +14,6 @@ import fixtures
 import glom
 import numpy as np
 import pytest
-import rioxarray as rxr
 import xarray as xr
 import yaml
 from area_potential import get_area_potential
@@ -94,7 +93,7 @@ def _run_area_potential(world, resampled_path, tmp_path, config, buffer_crs, ove
     if override is not None:
         args.append(f"--override_config={yaml.dump(override)}")
     result = fixtures.run_cli(get_area_potential, args)
-    return rxr.open_rasterio(tif_path), result.output
+    return fixtures.load_raster(tif_path), result.output
 
 
 def _parsed_config(config, override):

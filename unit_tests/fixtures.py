@@ -11,7 +11,7 @@ from pathlib import Path
 
 import geopandas as gpd
 import numpy as np
-import rioxarray  # noqa: F401  # activates the .rio accessor
+import rioxarray as rxr
 import xarray as xr
 import yaml
 from click.testing import CliRunner
@@ -41,6 +41,12 @@ def run_cli(command, args):
     )
     assert result.exit_code == 0, result.output
     return result
+
+
+def load_raster(path):
+    """Load a raster into memory and close its backing file handle."""
+    with rxr.open_rasterio(path) as raster:
+        return raster.load()
 
 
 def make_shapes(include_subpixel_region=False):
