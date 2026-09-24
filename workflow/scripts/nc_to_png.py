@@ -3,7 +3,7 @@
 import sys
 
 import xarray as xr
-from _script_utils import plot_all_dataset_variables
+from _plots import plot_all_dataset_variables
 
 
 def nc_to_png(nc_file_in, png_file_out):

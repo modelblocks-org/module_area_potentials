@@ -1,4 +1,4 @@
-"""Utility functions."""
+"""Plotting helpers shared by the plotting scripts."""
 
 import math
 

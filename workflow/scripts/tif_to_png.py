@@ -7,7 +7,7 @@ import numpy as np
 import rasterio
 import rioxarray  # noqa: F401  # activates the .rio accessor
 import xarray as xr
-from _script_utils import plot_all_dataset_variables
+from _plots import plot_all_dataset_variables
 from rasterio.enums import Resampling
 
 MAX_PIXELS = 2_000_000  # Matches the cap in plot_all_dataset_variables
