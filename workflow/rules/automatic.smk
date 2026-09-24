@@ -179,7 +179,8 @@ rule download_ship_travel:
         "Download Global Ship Density for all vessel types."
     shell:
         """
-        curl -sSLo {output:q} {params.url:q} >{log:q} 2>&1
+        # The World Bank host resets HTTP/2 streams on large transfers (curl exit 92)
+        curl --http1.1 --retry 3 -sSLo {output:q} {params.url:q} >{log:q} 2>&1
         """
 
 
@@ -284,8 +285,12 @@ rule rasterise_clip_wdpa:
         "<resources>/automatic/cutout/{shape}/wdpa.tif",
     log:
         "<logs>/{shape}/clip_wdpa.log",
+    benchmark:
+        "<logs>/{shape}/clip_wdpa.benchmark.tsv"
     conda:
         "../envs/module.yaml"
+    resources:
+        mem_mb=3000,
     message:
         "Rasterise and cut WDPA data to the bounds of the input shapefile, using the landcover raster as reference for the rasterisation."
     shell:

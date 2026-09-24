@@ -2,7 +2,6 @@
 
 import warnings
 
-import geopandas as gpd
 import utm
 from pyproj import CRS
 
@@ -24,44 +23,13 @@ def get_utm_crs_from_lonlat(lon, lat):
     return CRS.from_epsg(epsg_code)
 
 
-def utm_buffer(geom, buffer_distance_m=10000, source_crs="EPSG:4326"):
-    """Project a geom to UTM, buffer it, then re-project to its source CRS.
-
-    Args:
-        geom (shapely.geometry): The geometry to buffer, in the given source_crs.
-        buffer_distance_m (int): The buffer distance in meters (default is 10,000 m).
-        source_crs (str): The source CRS of the geometry (default is "EPSG:4326").
-
-    Returns:
-        shapely.geometry: The buffered geometry in its original CRS.
-
-    """
-    try:
-        centroid = geom.centroid
-        lon, lat = centroid.x, centroid.y
-        local_crs = get_utm_crs_from_lonlat(lon, lat)
-
-        # Project to local UTM CRS
-        gdf_single = gpd.GeoDataFrame(geometry=[geom], crs=source_crs)
-        gdf_utm = gdf_single.to_crs(local_crs)
-
-        # Buffer in meters
-        gdf_utm["geometry"] = gdf_utm.buffer(buffer_distance_m)
-
-        # Reproject back to WGS84
-        gdf_buffered = gdf_utm.to_crs(source_crs)
-        return gdf_buffered.iloc[0].geometry
-
-    except Exception as e:
-        warnings.warn(f"Failed to buffer geometry: {e}")
-        return None
-
-
 def apply_utm_buffer(gdf, buffer_distance_m=10000):
     """Apply a UTM-based buffer to a GeoDataFrame with an arbitrary CRS.
 
-    The buffering will be performed row-by-row using the most appropriate UTM zone for
-    each geometry's centroid.
+    The most appropriate UTM zone is chosen per geometry from its centroid.
+    Geometries are then grouped by UTM zone, and each group is projected, buffered
+    and re-projected in one vectorised operation. Geometries that cannot be buffered
+    (e.g. centroid outside the UTM latitude range) produce a warning and None.
 
     Args:
         gdf (geopandas.GeoDataFrame): The GeoDataFrame containing geometries to buffer.
@@ -73,7 +41,30 @@ def apply_utm_buffer(gdf, buffer_distance_m=10000):
     """
     source_crs = gdf.crs
     gdf_buffered = gdf.copy()
-    gdf_buffered["geometry"] = gdf_buffered["geometry"].apply(
-        lambda geom: utm_buffer(geom, buffer_distance_m, source_crs)
-    )
+
+    zone_indices = {}
+    for index, geom in gdf_buffered["geometry"].items():
+        try:
+            centroid = geom.centroid
+            local_crs = get_utm_crs_from_lonlat(centroid.x, centroid.y)
+        except Exception as e:
+            warnings.warn(f"Failed to buffer geometry: {e}")
+            gdf_buffered.loc[index, "geometry"] = None
+            continue
+        zone_indices.setdefault(local_crs, []).append(index)
+
+    for local_crs, indices in zone_indices.items():
+        try:
+            buffered = (
+                gdf_buffered.loc[indices, "geometry"]
+                .set_crs(source_crs, allow_override=True)
+                .to_crs(local_crs)
+                .buffer(buffer_distance_m)
+                .to_crs(source_crs)
+            )
+        except Exception as e:
+            warnings.warn(f"Failed to buffer geometry: {e}")
+            buffered = None
+        gdf_buffered.loc[indices, "geometry"] = buffered
+
     return gdf_buffered
