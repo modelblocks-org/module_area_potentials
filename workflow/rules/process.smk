@@ -1,3 +1,9 @@
+# Note: memory reservations (mem_mb) are sized for country-sized subunits of ~150
+# million reference pixels (this covers e.g. Norway including its EEZ).
+# They only constrain scheduling when snakemake is given a limit:
+# `snakemake --resources mem_mb=<available MB>`
+# Override per rule with `--set-resources` if needed.
+
 import shlex
 
 
@@ -17,14 +23,15 @@ rule prepare_resampled_inputs:
         ),
     output:
         resampled_input="<resources>/automatic/resampled_inputs/{shape}/{subunit}.nc",
-        plot=report(
-            "<resources>/automatic/resampled_inputs/{shape}/{subunit}.png",
-            category="resampled_input",
-        ),
     log:
         "<logs>/{shape}/{subunit}/prepare_resampled_inputs.log",
+    benchmark:
+        "<logs>/{shape}/{subunit}/prepare_resampled_inputs.benchmark.tsv"
     conda:
         "../envs/module.yaml"
+    threads: 4
+    resources:
+        mem_mb=4500,
     params:
         # Use internal defaults if not overridden
         land_cover_types_yaml_string=internal["land_cover_types"]
@@ -42,9 +49,31 @@ rule prepare_resampled_inputs:
             "{input.shapes}/{wildcards.subunit}.parquet" \
             {input.land_cover_path:q} {input.slope_path:q} {input.settlement_path:q} {input.bathymetry_path:q} {input.protected_area_path:q} \
             {params.land_cover_types_yaml_string:q} \
-            {output.resampled_input:q} {output.plot:q} \
-            {params.ship_travel_arg} >{log:q} 2>&1
+            {output.resampled_input:q} \
+            --num-threads {threads} {params.ship_travel_arg} >{log:q} 2>&1
         """
+
+
+rule plot_resampled_inputs:
+    input:
+        rules.prepare_resampled_inputs.output.resampled_input,
+    output:
+        report(
+            "<resources>/automatic/resampled_inputs/{shape}/{subunit}.png",
+            category="resampled_input",
+        ),
+    log:
+        "<logs>/{shape}/{subunit}/plot_resampled_inputs.log",
+    benchmark:
+        "<logs>/{shape}/{subunit}/plot_resampled_inputs.benchmark.tsv"
+    conda:
+        "../envs/module.yaml"
+    resources:
+        mem_mb=3000,
+    message:
+        "Plot resampled inputs for {wildcards.subunit} in {wildcards.shape}."
+    script:
+        "../scripts/nc_to_png.py"
 
 
 rule area_potential:
@@ -54,20 +83,22 @@ rule area_potential:
         resampled_path=rules.prepare_resampled_inputs.output.resampled_input,
     output:
         area_potential="<results>/{shape}/{scenario}/{subunit}/area_potential_{tech}.tif",
-        plot=report(
-            "<results>/{shape}/{scenario}/{subunit}/area_potential_{tech}.png",
-            category="area_potential",
-        ),
     log:
         "<logs>/{shape}/{scenario}/{subunit}/area_potential_{tech}.log",
+    benchmark:
+        "<logs>/{shape}/{scenario}/{subunit}/area_potential_{tech}.benchmark.tsv"
     conda:
         "../envs/module.yaml"
+    resources:
+        mem_mb=4200,
     params:
         config=lambda wildcards: config["scenarios"][f"{wildcards.scenario}"]["techs"][
             f"{wildcards.tech}"
         ],
-        subunit_override_config=lambda wildcards: config.get("overrides", {})
-        .get(wildcards.scenario, {})
+        subunit_override_config=lambda wildcards: config["scenarios"][
+            wildcards.scenario
+        ]
+        .get("overrides", {})
         .get(wildcards.subunit, {})
         .get(wildcards.tech, {}),
         buffer_crs=lambda wildcards: config["buffer_crs"],
@@ -75,8 +106,28 @@ rule area_potential:
         "Compute area potential for the scenario {wildcards.scenario}, the tech {wildcards.tech} and {wildcards.subunit} in {wildcards.shape}."
     shell:
         """
-        python {input.script:q} "{input.shapes}/{wildcards.subunit}.parquet" {input.resampled_path:q} {params.config:q} {params.buffer_crs:q} {output.area_potential:q} {output.plot:q} --override_config={params.subunit_override_config:q} >{log:q} 2>&1
+        python {input.script:q} "{input.shapes}/{wildcards.subunit}.parquet" {input.resampled_path:q} {params.config:q} {params.buffer_crs:q} {output.area_potential:q} --override_config={params.subunit_override_config:q} >{log:q} 2>&1
         """
+
+
+rule plot_area_potential:
+    input:
+        rules.area_potential.output.area_potential,
+    output:
+        report(
+            "<results>/{shape}/{scenario}/{subunit}/area_potential_{tech}.png",
+            category="area_potential",
+        ),
+    log:
+        "<logs>/{shape}/{scenario}/{subunit}/plot_area_potential_{tech}.log",
+    conda:
+        "../envs/module.yaml"
+    resources:
+        mem_mb=600,
+    message:
+        "Plot area potential for the tech {wildcards.tech} and {wildcards.subunit} in {wildcards.shape}."
+    script:
+        "../scripts/tif_to_png.py"
 
 
 rule aggregate_area_potential:
@@ -86,13 +137,19 @@ rule aggregate_area_potential:
         aggregated_area_potential="<area_potential>",
     log:
         "<logs>/{shape}/{scenario}/aggregate_area_potential_{tech}.log",
+    benchmark:
+        "<logs>/{shape}/{scenario}/aggregate_area_potential_{tech}.benchmark.tsv"
     conda:
         "../envs/module.yaml"
+    threads: 4
+    resources:
+        # gdalwarp is allowed up to 3 GB of cache and warp memory below
+        mem_mb=3500,
     message:
         "Aggregate area potential for the scenario {wildcards.scenario} and the tech {wildcards.tech} in {wildcards.shape}."
     shell:
         """
-        gdalwarp --config GDAL_CACHEMAX 3000 -wm 3000 -of GTiff -co COMPRESS=LZW {input} {output.aggregated_area_potential:q} >{log:q} 2>&1
+        gdalwarp --config GDAL_CACHEMAX 3000 -wm 3000 -multi -wo NUM_THREADS={threads} -of GTiff -co COMPRESS=LZW -co PREDICTOR=3 {input} {output.aggregated_area_potential:q} >{log:q} 2>&1
         """
 
 
@@ -108,6 +165,8 @@ rule plot_aggregated_area_potential:
         "<logs>/{shape}/{scenario}/plot_aggregated_area_potential_{tech}.log",
     conda:
         "../envs/module.yaml"
+    resources:
+        mem_mb=600,
     message:
         "Plot aggregated area potential for the scenario {wildcards.scenario} and the tech {wildcards.tech} in {wildcards.shape}."
     script:
@@ -126,6 +185,10 @@ rule area_potential_report:
             "<results>/{{shape}}/{{scenario}}/area_potential_{tech}.png",
             tech=get_techs,
         ),
+        # Not used by the report itself: pulls in the per-subunit diagnostic
+        # plots, which run in parallel jobs off the area_potential critical path
+        resampled_input_plots=get_subunit_input_plots,
+        subunit_potential_plots=get_subunit_potential_plots,
     output:
         csv="<results>/{shape}/{scenario}/area_potential_report.csv",
         html=report(
@@ -134,8 +197,12 @@ rule area_potential_report:
         ),
     log:
         "<logs>/{shape}/{scenario}/area_potential_report.log",
+    benchmark:
+        "<logs>/{shape}/{scenario}/area_potential_report.benchmark.tsv"
     conda:
         "../envs/module.yaml"
+    resources:
+        mem_mb=4000,
     message:
         "Generate an overview report of the area potential for scenario {wildcards.scenario} for all techs in shapes {wildcards.shape}."
     script:

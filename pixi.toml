@@ -7,6 +7,7 @@ readme = "README.md"
 channels = ["conda-forge", "bioconda"]
 platforms = ["win-64", "linux-64", "osx-arm64"]
 homepage = "https://www.modelblocks.org/"
+requires-pixi = ">=0.79.0"
 
 [dependencies]
 clio-tools = ">=2026.06.23"
@@ -49,11 +50,40 @@ glom = ">=24.11.0"
 dask = ">=2025.7.0"
 numpy = ">=2.3.5"
 
-[environments]
-module = { features = ["module"], no-default-feature = true }
+[feature.test-unit.dependencies]
+pytest = ">=8.3.5"
 
-[tasks]
-test-integration = {cmd = "pytest tests/integration_test.py"}
+[feature.test-unit.tasks]
+test-unit = "pytest unit_tests"
+update-reference-unit = "pytest unit_tests --update-reference"
+
+[environments]
+module = { features = ["module"], no-default-feature = true, solve-group = "module" }
+# Unit tests exercise workflow scripts directly, so they combine pytest with the
+# module runtime dependencies while remaining isolated from the default environment.
+test-unit = { features = ["test-unit", "module"], no-default-feature = true, solve-group = "module" }
+
+[tasks.test-integration]
+cmd = "pytest tests/integration_test.py"
+depends-on = [
+  { task = "test-unit", environment = "test-unit" },
+]
+
+# Regenerate the integration reference data: run the integration workflow, then
+# freeze its report CSV. Review the resulting diff deliberately before committing.
+[tasks.update-reference-integration]
+cwd = "tests/integration"
+cmd = """
+set -e
+snakemake --use-conda --cores 2
+python -c 'import shutil; shutil.copy("resources/module/results/NLD/base/area_potential_report.csv", "../reference/NLD_area_potential_report.csv")'
+"""
+
+[tasks.update-reference]
+depends-on = [
+  { task = "update-reference-unit", environment = "test-unit" },
+  { task = "update-reference-integration", environment = "default" },
+]
 
 
 [tasks.export-snakemake-env]

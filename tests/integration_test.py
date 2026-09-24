@@ -4,12 +4,18 @@ PLEASE ENSURE THIS SET OF MINIMAL TESTS WORKS BEFORE PUBLISHING YOUR MODULE.
 Contents may be updated in future template updates.
 """
 
+import copy
+import csv
+import math
 import subprocess
 import tomllib
 from pathlib import Path
 
 import pytest
+import yaml
 from clio_tools.data_module import ModuleInterface
+
+INTEGRATION_TECHS = ["pv_rooftop", "pv_open_field", "wind_onshore", "wind_offshore"]
 
 
 @pytest.fixture(scope="module")
@@ -82,3 +88,194 @@ def test_snakemake_integration_testing(module_path):
         check=True,
         cwd=module_path / "tests/integration",
     )
+
+
+##
+# Module-specific tests: compare the integration workflow outputs against
+# committed reference data (regenerate deliberately via `pixi run update-reference`).
+# These use only the standard library because the dev environment has no pandas.
+##
+
+
+def _report_csv_path(module_path):
+    """Path of the report CSV produced by the integration workflow run."""
+    path = (
+        module_path
+        / "tests/integration/resources/module/results/NLD/base/area_potential_report.csv"
+    )
+    assert path.exists(), (
+        "Integration workflow outputs not found; "
+        "test_snakemake_integration_testing must run (and pass) first."
+    )
+    return path
+
+
+def _read_csv_rows(path):
+    """Read a CSV file into a list of rows (lists of strings)."""
+    with open(path, newline="") as f:
+        return list(csv.reader(f))
+
+
+def _cells_equal(actual, expected, rel_tol, abs_tol):
+    """Compare two CSV cells, numerically where possible."""
+    if actual == expected:
+        return True
+    try:
+        actual_num, expected_num = float(actual), float(expected)
+    except ValueError:
+        return False
+    if math.isnan(actual_num) and math.isnan(expected_num):
+        return True
+    return math.isclose(actual_num, expected_num, rel_tol=rel_tol, abs_tol=abs_tol)
+
+
+def test_integration_output_files_exist(module_path):
+    """The aggregated area potential rasters exist for every configured tech."""
+    _report_csv_path(module_path)
+    for tech in INTEGRATION_TECHS:
+        tif = (
+            module_path
+            / f"tests/integration/results/outputs/NLD/base/area_potential_{tech}.tif"
+        )
+        assert tif.exists(), f"Missing output raster: {tif}"
+
+
+def test_integration_output_values(module_path):
+    """The report CSV matches the committed reference data cell by cell.
+
+    Tolerances are deliberately tight: the workflow is expected to be
+    reproducible from pinned inputs and pinned dependencies. Performance
+    rewrites that change floating-point precision must relax these tolerances
+    consciously, so the change is visible in review.
+    """
+    rel_tol, abs_tol = 1e-5, 1e-6
+    actual_rows = _read_csv_rows(_report_csv_path(module_path))
+    reference_csv = module_path / "tests/reference/NLD_area_potential_report.csv"
+    assert reference_csv.exists(), (
+        f"Missing reference data {reference_csv}; "
+        "generate it with `pixi run update-reference-integration`."
+    )
+    expected_rows = _read_csv_rows(reference_csv)
+    # Tech columns are named after the tif paths, which depend on where the
+    # workflow places its outputs (e.g. the scenario segment); compare basenames.
+    assert [Path(col).name for col in actual_rows[0]] == [
+        Path(col).name for col in expected_rows[0]
+    ], "Report CSV header changed"
+    assert len(actual_rows) == len(expected_rows), "Report CSV row count changed"
+    mismatches = [
+        f"row {i} column '{actual_rows[0][j]}': {actual!r} != reference {expected!r}"
+        for i, (actual_row, expected_row) in enumerate(
+            zip(actual_rows[1:], expected_rows[1:])
+        )
+        for j, (actual, expected) in enumerate(zip(actual_row, expected_row))
+        if not _cells_equal(actual, expected, rel_tol, abs_tol)
+    ]
+    assert not mismatches, "Report differs from reference data:\n" + "\n".join(
+        mismatches
+    )
+
+
+def test_integration_output_sanity(module_path):
+    """Basic physical sanity of the report, independent of reference data."""
+    rows = _read_csv_rows(_report_csv_path(module_path))
+    header = rows[0]
+    tech_columns = {
+        tech: header.index(
+            next(col for col in header if f"area_potential_{tech}" in col)
+        )
+        for tech in INTEGRATION_TECHS
+    }
+    class_column = header.index("shape_class")
+
+    def values(tech, shape_class=None):
+        return [
+            float(row[tech_columns[tech]])
+            for row in rows[1:]
+            if row[tech_columns[tech]] not in ("", "nan")
+            and (shape_class is None or row[class_column] == shape_class)
+        ]
+
+    for tech in INTEGRATION_TECHS:
+        assert sum(values(tech)) > 0, f"No area potential at all for {tech}"
+    # Offshore wind exists only in maritime regions; land techs only on land.
+    assert sum(values("wind_offshore", "land")) == pytest.approx(0, abs=1e-6)
+    for tech in ["pv_rooftop", "pv_open_field", "wind_onshore"]:
+        assert sum(values(tech, "maritime")) == pytest.approx(0, abs=1e-6)
+
+
+##
+# Rule-level regression tests: dry-run the integration workflow (after it has
+# run, so the breakup_shape checkpoint is resolved) and inspect the DAG and the
+# resolved shell commands. These guard config plumbing in the rules that no
+# script-level test can see.
+##
+
+
+def _dry_run(module_path, *args):
+    """Dry-run the integration workflow and return its combined output.
+
+    Only modification times decide what would rerun, so provenance changes
+    (e.g. a re-locked environment) cannot re-trigger the checkpoint and hide
+    every job downstream of it.
+    """
+    integration = module_path / "tests/integration"
+    assert (integration / "resources/module/resources/automatic/shapes/NLD").exists(), (
+        "Integration workflow outputs not found; "
+        "test_snakemake_integration_testing must run (and pass) first."
+    )
+    process = subprocess.run(
+        ["snakemake", "--dry-run", "--rerun-triggers", "mtime", *args],
+        cwd=integration,
+        capture_output=True,
+        text=True,
+    )
+    assert process.returncode == 0, process.stdout + process.stderr
+    return process.stdout + process.stderr
+
+
+def test_subunit_overrides_reach_area_potential(module_path):
+    """Per-subunit overrides configured inside a scenario are passed to the script.
+
+    Guards the override lookup in the area_potential rule: the test config
+    overrides the NLD wind_offshore land buffer, which must show up in the
+    resolved --override_config argument (and nothing must be passed for techs
+    without an override).
+    """
+    output = _dry_run(
+        module_path,
+        "--printshellcmds",
+        "--forcerun",
+        "module_area_potentials_area_potential",
+    )
+    commands = [line for line in output.splitlines() if "area_potential.py" in line]
+    assert len(commands) == len(INTEGRATION_TECHS), output
+    for command in commands:
+        # The mapping is passed through shell quoting; undo it before inspecting.
+        override = command.split("--override_config=", 1)[1].replace("'\"'\"'", "'")
+        if "area_potential_wind_offshore.tif" in command:
+            assert "'land': 2000" in override, command
+        else:
+            assert override.startswith("'{}'"), command
+
+
+@pytest.mark.parametrize("where", ["tech", "override", "nowhere"])
+def test_ship_travel_layer_activates_its_rules(module_path, tmp_path, where):
+    """A ship_travel layer in any scenario tech or override pulls in the ship-travel rules.
+
+    Guards uses_ship_travel(): the download/clip rules for the ship traffic
+    density raster are only part of the DAG when some tech uses the layer.
+    """
+    config_path = module_path / "tests/integration/test_config.yaml"
+    config = yaml.safe_load(config_path.read_text())
+    scenario = config["module_area_potentials"]["scenarios"]["base"]
+    layer = {"ship_travel": {"min": 0, "max": 21024000}}
+    if where == "tech":
+        scenario["techs"]["wind_offshore"]["continuous_layers"].update(layer)
+    elif where == "override":
+        scenario["overrides"]["NLD"]["wind_offshore"]["continuous_layers"] = layer
+    modified = tmp_path / "test_config.yaml"
+    modified.write_text(yaml.safe_dump(copy.deepcopy(config)))
+
+    output = _dry_run(module_path, "--configfile", str(modified))
+    expected = where != "nowhere"
+    assert ("module_area_potentials_clip_ship_travel" in output) == expected, output
