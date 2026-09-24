@@ -93,8 +93,8 @@ wind_onshore:
 ```
 
 Some of the processing in this workflow is memory-intensive.
-The memory-heavy rules all specifh their expected peak memory with `resources: mem_mb`. This number was hardcoded based on an estimate of country-sized subunits, with up to about 150 million land-cover pixels.
-Snakemake only uses these declarations to control how many memory-heavy jobs are scheduled inp parallel, when you tell it how much memory is available overall (e.g., `snakemake --use-conda --cores 4 --resources mem_mb=12000`).
+The memory-heavy rules all specify their expected peak memory with `resources: mem_mb`. This number was hardcoded based on an estimate of country-sized subunits, with up to about 150 million land-cover pixels.
+Snakemake only uses these declarations to control how many memory-heavy jobs are scheduled in parallel, when you tell it how much memory is available overall (e.g., `snakemake --use-conda --cores 4 --resources mem_mb=12000`).
 To help diagnose memory usage, each heavy job also writes a `*.benchmark.tsv` next to its log file, containing its runtime, and on Linux only, peak memory.
 
 ## Input / output structure

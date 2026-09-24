@@ -90,10 +90,7 @@ def clip_and_rasterise_polys(
     """Rasterise the polygons in PROTECTED_AREA_PATH onto reference raster grid.
 
     A 0/1 uint8 raster on the full reference grid (1 = inside a polygon) is saved to
-    OUTPUT_PATH. No resampling happens here. Resample.py later warps this
-    raster onto the subunit grid with average resampling, which turns the 0/1
-    values into the protected fraction of each pixel.
-    SHAPES_PATH is accepted for interface compatibility but not used.
+    OUTPUT_PATH. SHAPES_PATH is accepted for interface compatibility but not used.
     """
     reference_raster = rxr.open_rasterio(reference_raster_path)
 
