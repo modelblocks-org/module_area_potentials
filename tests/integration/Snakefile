@@ -13,7 +13,7 @@ rule download_netherlands_shapes:
         "Download and unzip the Netherlands shapes."
     shell:
         """
-        curl -sSLo {output:q} "https://zenodo.org/records/16684683/files/NLD.parquet"
+        curl -fsSLo {output:q} "https://zenodo.org/records/16684683/files/NLD.parquet"
         """
 
 
@@ -28,7 +28,7 @@ rule download_netherlands_protected_areas:
         "Download a dummy drop-in dataset for Netherlands protected areas (not based on WDPA)."
     shell:
         """
-        curl -sSLo {output:q} "https://zenodo.org/records/16684513/files/wdpa-nl-dropin.gdb.zip"
+        curl -fsSLo {output:q} "https://zenodo.org/records/16684513/files/wdpa-nl-dropin.gdb.zip"
         """
 
 
