@@ -226,22 +226,17 @@ rule download_ghsl:
 
 rule unzip_ghsl:
     input:
-        script=workflow.source_path("../scripts/unzip_like.py"),
-        zipfile=rules.download_ghsl.output,
+        rules.download_ghsl.output[0],
     output:
         "<resources>/automatic/global/ghsl_built_s.tif",
     log:
         "<logs>/unzip_ghsl.log",
-    conda:
-        "../envs/module.yaml"
     params:
-        target_file=internal["resources"]["automatic"]["ghsl_tif"],
+        internal_paths=internal["resources"]["automatic"]["ghsl_tif"],
     message:
         "Unzip the relevant TIF file from the GHSL data."
-    shell:
-        """
-        python {input.script:q} {input.zipfile:q} -f {params.target_file:q} -o {output:q} >{log:q} 2>&1
-        """
+    wrapper:
+        "v9.8.0/utils/libarchive/extract"
 
 
 rule clip_settlement:
