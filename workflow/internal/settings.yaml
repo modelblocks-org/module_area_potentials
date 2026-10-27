@@ -7,8 +7,7 @@ resources:
     slope: "https://zenodo.org/records/14920379/files/slope.in.degree_edtm_m_240m_s_20000101_20221231_go_epsg.4326_v20241230.tif"
     bathymetry: "https://zenodo.org/records/15741950/files/gebco_2024_sub_ice_cog.tif"
     globcover: "https://hs.pangaea.de/Projects/GLOBCOVER/GLOBCOVER_L4_200901_200912_V2.3.tif"
-    ghsl: "https://jeodpp.jrc.ec.europa.eu/ftp/jrc-opendata/GHSL/GHS_BUILT_S_GLOBE_R2023A/GHS_BUILT_S_E2025_GLOBE_R2023A_4326_30ss/V1-0/GHS_BUILT_S_E2025_GLOBE_R2023A_4326_30ss_V1_0.zip"
-    ghsl_tif: "GHS_BUILT_S_E2025_GLOBE_R2023A_4326_30ss_V1_0.tif"
+    ghsl: "https://jrc-ghsl.s3.eu-central-1.amazonaws.com/ghs-built-s/r2023a/4326/30asec/2025/GHS_BUILT_S_E2025_GLOBE_R2023A_4326_30ss_V1_0.tif"
     ship_travel: "https://datacatalogfiles.worldbank.org/ddh-published/0037580/5/DR0045406/shipdensity_global.zip"
     ship_travel_tif: "shipdensity_global.tif"
 
