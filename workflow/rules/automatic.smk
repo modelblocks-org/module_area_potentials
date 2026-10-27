@@ -140,7 +140,6 @@ else:
             curl -fsSLo {output:q} {params.url:q} >{log:q} 2>&1
             """
 
-
     rule clip_slope:
         input:
             like_vector=rules.normalise_shapes.output.shapes,
