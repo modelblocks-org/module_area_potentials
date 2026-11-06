@@ -3,7 +3,7 @@
 if config.get("tiny_files", False):
 
     ##
-    # Directly download clipped slope and bathymetry data
+    # Directly download clipped datasets when possible
     ##
 
     rule clip_slope:
@@ -36,10 +36,40 @@ if config.get("tiny_files", False):
         wrapper:
             "v9.14.0/geo/rasterio/clip"
 
+    rule clip_landcover:
+        input:
+            like_vector=rules.normalise_shapes.output.shapes,
+        output:
+            path="<resources>/automatic/cutout/{shape}/landcover.tif",
+        log:
+            "<logs>/{shape}/clip_landcover.log",
+        localrule: True
+        params:
+            cog_url=internal["resources"]["automatic"]["globcover"],
+        message:
+            "Download landcover data covering the bounds of the input shapefile."
+        wrapper:
+            "v9.14.0/geo/rasterio/clip"
+
+    rule clip_settlement:
+        input:
+            like_vector=rules.normalise_shapes.output.shapes,
+        output:
+            path="<resources>/automatic/cutout/{shape}/settlement.tif",
+        log:
+            "<logs>/{shape}/clip_settlement.log",
+        localrule: True
+        params:
+            cog_url=internal["resources"]["automatic"]["ghsl"],
+        message:
+            "Cut settlement data to the bounds of the input shapefile."
+        wrapper:
+            "v9.14.0/geo/rasterio/clip"
+
 else:
 
     ##
-    # Download global slope and bathymetry data, then clip the files locally
+    # Download the full datasets, then clip the files locally
     ##
 
     rule download_slope:
@@ -56,7 +86,7 @@ else:
             "Download global slope data."
         shell:
             """
-            curl -sSLo {output:q} {params.url:q} >{log:q} 2>&1
+            curl -fsSLo {output:q} {params.url:q} >{log:q} 2>&1
             """
 
     rule download_bathymetry:
@@ -73,7 +103,41 @@ else:
             "Download global bathymetry data."
         shell:
             """
-            curl -sSLo {output:q} {params.url:q} >{log:q} 2>&1
+            curl -fsSLo {output:q} {params.url:q} >{log:q} 2>&1
+            """
+
+    rule download_landcover:
+        output:
+            "<resources>/automatic/global/globcover-landcover.tif",
+        log:
+            "<logs>/download_landcover.log",
+        localrule: True
+        conda:
+            "../envs/module.yaml"
+        params:
+            url=internal["resources"]["automatic"]["globcover"],
+        message:
+            "Download the GlobCover land cover data (~380 MB)."
+        shell:
+            """
+            curl -fsSLo {output:q} {params.url:q} >{log:q} 2>&1
+            """
+
+    rule download_settlement:
+        output:
+            "<resources>/automatic/global/ghsl_built_s.tif",
+        log:
+            "<logs>/download_settlement.log",
+        localrule: True
+        conda:
+            "../envs/module.yaml"
+        params:
+            url=internal["resources"]["automatic"]["ghsl"],
+        message:
+            "Download the GHSL (Global Human Settlement Layer) built-up surface data."
+        shell:
+            """
+            curl -fsSLo {output:q} {params.url:q} >{log:q} 2>&1
             """
 
     rule clip_slope:
@@ -102,62 +166,31 @@ else:
         wrapper:
             "v9.14.0/geo/rasterio/clip"
 
+    rule clip_landcover:
+        input:
+            like_vector=rules.normalise_shapes.output.shapes,
+            raster=rules.download_landcover.output[0],
+        output:
+            path="<resources>/automatic/cutout/{shape}/landcover.tif",
+        log:
+            "<logs>/{shape}/clip_landcover.log",
+        message:
+            "Cut land cover data to the bounds of the input shapefile."
+        wrapper:
+            "v9.14.0/geo/rasterio/clip"
 
-##
-# Globcover
-##
-
-
-rule download_globcover:
-    output:
-        "<resources>/automatic/global/globcover.zip",
-    log:
-        "<logs>/download_globcover.log",
-    localrule: True
-    conda:
-        "../envs/module.yaml"
-    params:
-        url=internal["resources"]["automatic"]["globcover"],
-    message:
-        "Download the GlobCover land cover data (~380 MB)."
-    shell:
-        """
-        curl -sSLo {output:q} {params.url:q} >{log:q} 2>&1
-        """
-
-
-rule unzip_globcover:
-    input:
-        script=workflow.source_path("../scripts/unzip_like.py"),
-        zipfile=rules.download_globcover.output,
-    output:
-        "<resources>/automatic/global/globcover-landcover.tif",
-    log:
-        "<logs>/unzip_globcover.log",
-    conda:
-        "../envs/module.yaml"
-    params:
-        target_file=internal["resources"]["automatic"]["globcover_landcover_tif"],
-    message:
-        "Unzip the relevant TIF files from the GlobCover zip file."
-    shell:
-        """
-        python {input.script:q} {input.zipfile:q} -f {params.target_file:q} -o {output:q} >{log:q} 2>&1
-        """
-
-
-rule clip_landcover:
-    input:
-        like_vector=rules.normalise_shapes.output.shapes,
-        raster=rules.unzip_globcover.output[0],
-    output:
-        path="<resources>/automatic/cutout/{shape}/landcover.tif",
-    log:
-        "<logs>/{shape}/clip_landcover.log",
-    message:
-        "Cut land cover data to the bounds of the input shapefile."
-    wrapper:
-        "v9.14.0/geo/rasterio/clip"
+    rule clip_settlement:
+        input:
+            like_vector=rules.normalise_shapes.output.shapes,
+            raster=rules.download_settlement.output[0],
+        output:
+            path="<resources>/automatic/cutout/{shape}/settlement.tif",
+        log:
+            "<logs>/{shape}/clip_settlement.log",
+        message:
+            "Cut settlement data to the bounds of the input shapefile."
+        wrapper:
+            "v9.14.0/geo/rasterio/clip"
 
 
 ##
@@ -209,63 +242,6 @@ rule clip_ship_travel:
         "<logs>/{shape}/clip_ship_travel.log",
     message:
         "Cut ship travel data to the bounds of the input shapefile."
-    wrapper:
-        "v9.14.0/geo/rasterio/clip"
-
-
-##
-# Global Human Settlement Layer (GHSL)
-##
-
-
-rule download_ghsl:
-    output:
-        "<resources>/automatic/global/ghsl_built_s.zip",
-    log:
-        "<logs>/download_ghsl.log",
-    localrule: True
-    conda:
-        "../envs/module.yaml"
-    params:
-        url=internal["resources"]["automatic"]["ghsl"],
-    message:
-        "Download the GHSL (Global Human Settlement Layer) built-up surface data."
-    shell:
-        """
-        curl -sSLo {output:q} {params.url:q} >{log:q} 2>&1
-        """
-
-
-rule unzip_ghsl:
-    input:
-        script=workflow.source_path("../scripts/unzip_like.py"),
-        zipfile=rules.download_ghsl.output,
-    output:
-        "<resources>/automatic/global/ghsl_built_s.tif",
-    log:
-        "<logs>/unzip_ghsl.log",
-    conda:
-        "../envs/module.yaml"
-    params:
-        target_file=internal["resources"]["automatic"]["ghsl_tif"],
-    message:
-        "Unzip the relevant TIF file from the GHSL data."
-    shell:
-        """
-        python {input.script:q} {input.zipfile:q} -f {params.target_file:q} -o {output:q} >{log:q} 2>&1
-        """
-
-
-rule clip_settlement:
-    input:
-        like_vector=rules.normalise_shapes.output.shapes,
-        raster=rules.unzip_ghsl.output[0],
-    output:
-        path="<resources>/automatic/cutout/{shape}/settlement.tif",
-    log:
-        "<logs>/{shape}/clip_settlement.log",
-    message:
-        "Cut settlement data to the bounds of the input shapefile."
     wrapper:
         "v9.14.0/geo/rasterio/clip"
 

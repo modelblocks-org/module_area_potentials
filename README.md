@@ -166,7 +166,7 @@ This module is based on the following research and datasets:
 
 - [GEDTM30](https://github.com/openlandmap/GEDTM30) for slope
     - License: Creative Commons Attribution 4.0 International
-- [GlobCover land cover data](https://due.esrin.esa.int/page_globcover.php)
+- [GlobCover land cover data](https://doi.org/10.1594/PANGAEA.787668)
     - License: "You may use the GlobCover land cover map for educational and/or scientific purposes, without any fee on the condition that you credit ESA and the Université Catholique de Louvain as the source of the GlobCover products."
 - [GEBCO (General Bathymetric Chart of the Oceans)](https://www.gebco.net/data-products/gridded-bathymetry-data) 15 arc-second data
     - License: "The GEBCO Grid is placed in the public domain and may be used free of charge. [...] Users must: Acknowledge the source of The GEBCO Grid. A suitable form of attribution is given in the documentation that accompanies The GEBCO Grid."
